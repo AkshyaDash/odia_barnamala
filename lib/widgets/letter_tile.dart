@@ -1,20 +1,20 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/material.dart';
+
 import '../models/letter.dart';
-import '../providers/progress_provider.dart';
+import '../screens/letter_trace_screen.dart';
 import '../theme/app_theme.dart';
 
-class LetterTile extends ConsumerStatefulWidget {
+class LetterTile extends StatefulWidget {
   final OdiaLetter letter;
 
   const LetterTile({super.key, required this.letter});
 
   @override
-  ConsumerState<LetterTile> createState() => _LetterTileState();
+  State<LetterTile> createState() => _LetterTileState();
 }
 
-class _LetterTileState extends ConsumerState<LetterTile>
+class _LetterTileState extends State<LetterTile>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
@@ -42,7 +42,6 @@ class _LetterTileState extends ConsumerState<LetterTile>
 
   Future<void> _onTap() async {
     _controller.forward(from: 0);
-    ref.read(progressProvider.notifier).onLetterTapped(widget.letter.character);
     try {
       await _player.stop();
       await _player.play(AssetSource(
@@ -50,6 +49,13 @@ class _LetterTileState extends ConsumerState<LetterTile>
       ));
     } catch (_) {
       // Audio file may not exist yet — silent fail
+    }
+    if (mounted) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => LetterTraceScreen(letter: widget.letter),
+        ),
+      );
     }
   }
 
