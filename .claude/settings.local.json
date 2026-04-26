@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter pub *)",
+      "Bash(where flutter *)",
+      "Read(//c/Users/akshy/AppData/Local/Programs//**)",
+      "Read(//c/Users/akshy/flutter/bin/**)",
+      "Read(//c/development/flutter/bin/**)",
+      "Bash(find /c -maxdepth 4 -name \"flutter.bat\")",
+      "Bash(/c/flutter/bin/flutter.bat analyze *)"
+    ]
+  }
+}
