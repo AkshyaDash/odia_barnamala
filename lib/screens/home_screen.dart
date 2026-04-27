@@ -14,11 +14,19 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _selectedIndex = 1; // Start on Learn screen
 
-  final List<Widget> _screens = const [
-    _WelcomeTab(),
-    LetterGridScreen(),
-    RewardsScreen(),
-  ];
+  late final List<Widget> _screens;
+
+  @override
+  void initState() {
+    super.initState();
+    _screens = [
+      const _WelcomeTab(),
+      LetterGridScreen(
+        onBack: () => setState(() => _selectedIndex = 0),
+      ),
+      const RewardsScreen(),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {

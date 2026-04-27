@@ -51,12 +51,11 @@ class ProgressNotifier extends StateNotifier<ProgressState> {
     );
   }
 
-  /// Called when the user successfully traces a letter. Awards 5 stars.
   void onLetterTraced(String letter) {
     state = state.copyWith(
       tappedLetters: {...state.tappedLetters, letter},
       tapCount: state.tapCount + 1,
-      stars: state.stars + 5,
+      stars: state.stars + 1,
     );
   }
 

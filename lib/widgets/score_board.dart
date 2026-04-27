@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/progress_provider.dart';
+
+import '../providers/app_providers.dart';
 
 class ScoreBoard extends ConsumerWidget {
   const ScoreBoard({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(progressProvider);
+    final stats = ref.watch(childStatsProvider).valueOrNull;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       decoration: const BoxDecoration(
@@ -23,7 +25,7 @@ class ScoreBoard extends ConsumerWidget {
           const Icon(Icons.star_rounded, color: Color(0xFFFFD700), size: 32),
           const SizedBox(width: 8),
           Text(
-            '${state.stars}',
+            '${stats?.totalStars ?? 0}',
             style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
@@ -31,10 +33,11 @@ class ScoreBoard extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: 24),
-          const Icon(Icons.touch_app_rounded, color: Color(0xFF88AAFF), size: 28),
+          const Icon(Icons.auto_stories_rounded,
+              color: Color(0xFF88AAFF), size: 28),
           const SizedBox(width: 8),
           Text(
-            '${state.tapCount}',
+            '${stats?.lettersPracticed ?? 0}',
             style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,

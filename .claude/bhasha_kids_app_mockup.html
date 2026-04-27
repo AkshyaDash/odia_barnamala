@@ -1,0 +1,699 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans); }
+
+  .app-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.5rem 0;
+    gap: 1rem;
+  }
+
+  .screen-nav {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 0.5rem;
+  }
+
+  .nav-btn {
+    font-size: 12px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1.5px solid #ccc;
+    background: #fff;
+    cursor: pointer;
+    color: #444;
+    font-weight: 500;
+    transition: all 0.15s;
+  }
+  .nav-btn.active {
+    background: #FF6B35;
+    border-color: #FF6B35;
+    color: #fff;
+  }
+
+  .phone {
+    width: 320px;
+    min-height: 620px;
+    border-radius: 36px;
+    border: 3px solid #222;
+    background: #fff;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .status-bar {
+    height: 28px;
+    background: #1a1a2e;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 16px;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #fff; opacity: 0.8; }
+  .status-bar span { color: #fff; font-size: 10px; opacity: 0.8; }
+
+  .screen { display: none; flex-direction: column; flex: 1; }
+  .screen.active { display: flex; }
+
+  /* ===== SPLASH / HOME ===== */
+  .splash-bg {
+    background: #FFF8F0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .splash-header {
+    background: #FF6B35;
+    width: 100%;
+    padding: 20px 16px 28px;
+    text-align: center;
+    border-radius: 0 0 32px 32px;
+  }
+  .app-logo {
+    width: 56px; height: 56px;
+    background: #fff;
+    border-radius: 16px;
+    margin: 0 auto 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px;
+  }
+  .app-name { color: #fff; font-size: 20px; font-weight: 700; }
+  .app-tagline { color: rgba(255,255,255,0.85); font-size: 12px; margin-top: 2px; }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #888;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    padding: 16px 16px 8px;
+    align-self: flex-start;
+  }
+
+  .lang-scroll {
+    display: flex;
+    gap: 10px;
+    padding: 0 16px 4px;
+    overflow-x: auto;
+    width: 100%;
+  }
+  .lang-card {
+    flex-shrink: 0;
+    width: 80px;
+    border-radius: 16px;
+    padding: 10px 8px;
+    text-align: center;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .lang-card .script { font-size: 24px; display: block; margin-bottom: 4px; }
+  .lang-card .lname { font-size: 10px; font-weight: 600; }
+  .lang-card.selected { border-color: #FF6B35; }
+
+  .lc-odia { background: #FFF0E6; } .lc-odia .lname { color: #CC4400; }
+  .lc-hindi { background: #FFF0F5; } .lc-hindi .lname { color: #AA2255; }
+  .lc-tamil { background: #F0F5FF; } .lc-tamil .lname { color: #2244AA; }
+  .lc-telugu { background: #F0FFF5; } .lc-telugu .lname { color: #116633; }
+  .lc-kannada { background: #FFF8E1; } .lc-kannada .lname { color: #885500; }
+
+  .streak-bar {
+    margin: 0 16px;
+    background: #FFF0E6;
+    border-radius: 14px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: calc(100% - 32px);
+  }
+  .streak-fire { font-size: 22px; }
+  .streak-text { font-size: 13px; font-weight: 600; color: #CC4400; flex: 1; }
+  .streak-days { font-size: 18px; font-weight: 700; color: #FF6B35; }
+
+  .quick-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 0 16px;
+    width: 100%;
+  }
+  .quick-card {
+    border-radius: 16px;
+    padding: 14px 12px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .quick-card .qc-icon { font-size: 22px; }
+  .quick-card .qc-title { font-size: 13px; font-weight: 700; }
+  .quick-card .qc-sub { font-size: 10px; opacity: 0.7; }
+  .qc-learn { background: #FFE5D9; } .qc-learn .qc-title { color: #7A2500; }
+  .qc-quiz { background: #E3F0FF; } .qc-quiz .qc-title { color: #0A3D7A; }
+  .qc-words { background: #E6FFE6; } .qc-words .qc-title { color: #1A6620; }
+  .qc-stars { background: #FFF9E0; } .qc-stars .qc-title { color: #6B5000; }
+
+  .bottom-nav {
+    height: 58px;
+    background: #fff;
+    border-top: 1px solid #eee;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    flex-shrink: 0;
+  }
+  .bnav-item {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    cursor: pointer; padding: 6px 10px;
+  }
+  .bnav-icon { font-size: 18px; }
+  .bnav-label { font-size: 9px; color: #999; font-weight: 500; }
+  .bnav-item.active .bnav-label { color: #FF6B35; }
+  .bnav-dot { width: 4px; height: 4px; border-radius: 50%; background: #FF6B35; margin: 0 auto; }
+
+  /* ===== LETTERS GRID ===== */
+  .letters-header {
+    background: #FF6B35;
+    padding: 16px 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .back-btn {
+    width: 32px; height: 32px; border-radius: 10px;
+    background: rgba(255,255,255,0.25);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 16px; color: #fff;
+  }
+  .lh-title { color: #fff; font-size: 17px; font-weight: 700; flex: 1; }
+  .lh-sub { color: rgba(255,255,255,0.8); font-size: 11px; }
+  .progress-bar-wrap { padding: 0 16px; background: #FFF8F0; padding-top: 12px; }
+  .pb-label { font-size: 11px; color: #888; margin-bottom: 4px; }
+  .pb-track { height: 7px; background: #EEDDCC; border-radius: 4px; }
+  .pb-fill { height: 100%; border-radius: 4px; background: #FF6B35; width: 28%; }
+
+  .letter-grid-area {
+    flex: 1;
+    overflow-y: auto;
+    background: #FFF8F0;
+    padding: 12px 12px 8px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    align-content: start;
+  }
+  .letter-tile {
+    background: #fff;
+    border-radius: 14px;
+    border: 2px solid #FFD0B5;
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.1s;
+  }
+  .letter-tile:active { transform: scale(0.93); }
+  .letter-tile.learned { border-color: #FF6B35; background: #FFF0E6; }
+  .letter-tile.locked { border-color: #DDD; background: #F5F5F5; opacity: 0.5; }
+  .lt-char { font-size: 22px; line-height: 1; }
+  .lt-roman { font-size: 9px; color: #999; margin-top: 2px; }
+  .lt-star {
+    position: absolute; top: 4px; right: 5px;
+    font-size: 10px; color: #FFB800;
+  }
+
+  /* ===== TRACING SCREEN ===== */
+  .trace-header {
+    background: #7C3AED;
+    padding: 16px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .trace-header .lh-title { color: #fff; }
+  .trace-body { flex: 1; background: #F5F0FF; display: flex; flex-direction: column; align-items: center; padding: 16px; gap: 12px; }
+
+  .letter-hero {
+    width: 120px; height: 120px;
+    background: #fff;
+    border-radius: 28px;
+    border: 3px solid #C4B5FD;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 64px;
+    position: relative;
+  }
+  .sound-btn {
+    position: absolute;
+    bottom: -14px;
+    background: #7C3AED;
+    width: 30px; height: 30px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 14px; cursor: pointer;
+  }
+  .letter-info-row {
+    display: flex; gap: 16px; align-items: center;
+  }
+  .li-name { font-size: 15px; font-weight: 700; color: #4C1D95; }
+  .li-sound { font-size: 13px; color: #7C3AED; background: #EDE9FE; padding: 3px 10px; border-radius: 20px; }
+
+  .canvas-wrap {
+    width: 260px; height: 200px;
+    background: #fff;
+    border-radius: 20px;
+    border: 2px dashed #C4B5FD;
+    position: relative;
+    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .guide-letter { font-size: 120px; color: rgba(196,181,253,0.35); line-height: 1; }
+  .trace-tip { font-size: 11px; color: #7C3AED; background: #EDE9FE; padding: 4px 12px; border-radius: 20px; }
+  .stars-row { display: flex; gap: 8px; }
+  .star-ico { font-size: 28px; }
+
+  .trace-btns { display: flex; gap: 10px; padding: 0 16px 16px; }
+  .tbtn {
+    flex: 1; padding: 12px; border-radius: 14px; border: none;
+    font-size: 13px; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .tbtn-clear { background: #EDE9FE; color: #4C1D95; }
+  .tbtn-next { background: #7C3AED; color: #fff; }
+
+  /* ===== QUIZ SCREEN ===== */
+  .quiz-header { background: #0F766E; padding: 16px; display: flex; align-items: center; gap: 10px; }
+  .quiz-body { flex: 1; background: #F0FDFA; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+  .quiz-progress { display: flex; gap: 6px; justify-content: center; }
+  .qp-dot { width: 24px; height: 6px; border-radius: 3px; }
+  .qpd-done { background: #0F766E; }
+  .qpd-current { background: #5EEAD4; }
+  .qpd-empty { background: #CCEEEA; }
+
+  .quiz-question-box {
+    background: #fff;
+    border-radius: 20px;
+    border: 2px solid #99F6E4;
+    padding: 20px;
+    text-align: center;
+  }
+  .qq-prompt { font-size: 12px; color: #0F766E; font-weight: 600; margin-bottom: 10px; }
+  .qq-audio-btn {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: #F0FDFA; border: 3px solid #5EEAD4;
+    margin: 0 auto;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px; cursor: pointer;
+  }
+  .qq-sub { font-size: 11px; color: #999; margin-top: 8px; }
+
+  .quiz-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .qopt {
+    background: #fff;
+    border-radius: 16px;
+    border: 2.5px solid #99F6E4;
+    padding: 14px 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .qopt.correct { border-color: #22C55E; background: #F0FFF4; }
+  .qopt.wrong { border-color: #EF4444; background: #FFF5F5; }
+  .qopt-char { font-size: 28px; display: block; margin-bottom: 4px; }
+  .qopt-label { font-size: 10px; color: #666; }
+
+  .quiz-score-row { display: flex; justify-content: space-between; align-items: center; padding: 0 4px; }
+  .qs-label { font-size: 12px; color: #0F766E; font-weight: 600; }
+  .qs-val { font-size: 18px; font-weight: 700; color: #0F766E; }
+
+  /* ===== PROGRESS SCREEN ===== */
+  .prog-header { background: #0369A1; padding: 16px; display: flex; align-items: center; gap: 10px; }
+  .prog-body { flex: 1; background: #F0F9FF; padding: 16px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+  .prog-avatar {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: #FFF0E6; border: 3px solid #FF6B35;
+    font-size: 26px; display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 6px;
+  }
+  .prog-name { text-align: center; font-size: 15px; font-weight: 700; color: #0369A1; }
+  .prog-level { text-align: center; font-size: 11px; color: #0284C7; background: #E0F2FE; padding: 3px 12px; border-radius: 20px; display: inline-block; margin: 0 auto; }
+
+  .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .stat-card {
+    background: #fff;
+    border-radius: 14px;
+    border: 1.5px solid #BAE6FD;
+    padding: 10px 8px;
+    text-align: center;
+  }
+  .sc-val { font-size: 20px; font-weight: 700; color: #0369A1; }
+  .sc-label { font-size: 9px; color: #888; margin-top: 2px; }
+
+  .lang-progress-list { display: flex; flex-direction: column; gap: 8px; }
+  .lp-row { background: #fff; border-radius: 14px; border: 1.5px solid #BAE6FD; padding: 10px 12px; }
+  .lp-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .lp-name { font-size: 12px; font-weight: 600; color: #0369A1; }
+  .lp-pct { font-size: 11px; color: #888; }
+  .lp-track { height: 6px; background: #E0F2FE; border-radius: 3px; }
+  .lp-fill { height: 100%; border-radius: 3px; background: #0369A1; }
+
+  .badge-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+  .badge-item { flex-shrink: 0; text-align: center; }
+  .badge-circle {
+    width: 48px; height: 48px; border-radius: 50%;
+    border: 2.5px solid;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; margin-bottom: 4px;
+  }
+  .badge-locked { opacity: 0.35; }
+  .badge-label { font-size: 9px; color: #666; }
+</style>
+
+<div class="app-wrapper">
+
+  <div class="screen-nav">
+    <button class="nav-btn active" onclick="showScreen('home')">Home</button>
+    <button class="nav-btn" onclick="showScreen('letters')">Letters</button>
+    <button class="nav-btn" onclick="showScreen('trace')">Tracing</button>
+    <button class="nav-btn" onclick="showScreen('quiz')">Quiz</button>
+    <button class="nav-btn" onclick="showScreen('progress')">Progress</button>
+  </div>
+
+  <div class="phone">
+    <div class="status-bar">
+      <span>9:41</span>
+      <div class="status-dot"></div>
+      <div class="status-dot"></div>
+      <div class="status-dot"></div>
+    </div>
+
+    <!-- HOME SCREEN -->
+    <div class="screen active" id="screen-home">
+      <div class="splash-bg">
+        <div class="splash-header">
+          <div class="app-logo">&#127968;</div>
+          <div class="app-name">Bhasha Kids</div>
+          <div class="app-tagline">Learn all Indian alphabets — Have fun!</div>
+        </div>
+
+        <div class="section-label">Choose a language</div>
+        <div class="lang-scroll">
+          <div class="lang-card lc-odia selected" onclick="showScreen('letters')">
+            <span class="script">&#x0B13;</span>
+            <span class="lname">Odia</span>
+          </div>
+          <div class="lang-card lc-hindi" onclick="showScreen('letters')">
+            <span class="script">&#x0939;</span>
+            <span class="lname">Hindi</span>
+          </div>
+          <div class="lang-card lc-tamil" onclick="showScreen('letters')">
+            <span class="script">&#x0B86;</span>
+            <span class="lname">Tamil</span>
+          </div>
+          <div class="lang-card lc-telugu" onclick="showScreen('letters')">
+            <span class="script">&#x0C05;</span>
+            <span class="lname">Telugu</span>
+          </div>
+          <div class="lang-card lc-kannada" onclick="showScreen('letters')">
+            <span class="script">&#x0C85;</span>
+            <span class="lname">Kannada</span>
+          </div>
+        </div>
+
+        <div class="section-label">Today's streak</div>
+        <div class="streak-bar">
+          <div class="streak-fire">&#128293;</div>
+          <div class="streak-text">Keep it up! Day</div>
+          <div class="streak-days">7</div>
+        </div>
+
+        <div class="section-label">What do you want to do?</div>
+        <div class="quick-grid">
+          <div class="quick-card qc-learn" onclick="showScreen('letters')">
+            <div class="qc-icon">&#128218;</div>
+            <div class="qc-title">Learn letters</div>
+            <div class="qc-sub">Tap & trace</div>
+          </div>
+          <div class="quick-card qc-quiz" onclick="showScreen('quiz')">
+            <div class="qc-icon">&#10067;</div>
+            <div class="qc-title">Quiz time</div>
+            <div class="qc-sub">Test yourself</div>
+          </div>
+          <div class="quick-card qc-words">
+            <div class="qc-icon">&#128247;</div>
+            <div class="qc-title">Word pictures</div>
+            <div class="qc-sub">A for Aam...</div>
+          </div>
+          <div class="quick-card qc-stars" onclick="showScreen('progress')">
+            <div class="qc-icon">&#11088;</div>
+            <div class="qc-title">My trophies</div>
+            <div class="qc-sub">14 earned</div>
+          </div>
+        </div>
+        <div style="height: 16px;"></div>
+      </div>
+
+      <div class="bottom-nav">
+        <div class="bnav-item active">
+          <div class="bnav-icon">&#127968;</div>
+          <div class="bnav-label" style="color:#FF6B35;">Home</div>
+          <div class="bnav-dot"></div>
+        </div>
+        <div class="bnav-item" onclick="showScreen('letters')">
+          <div class="bnav-icon">&#127381;</div>
+          <div class="bnav-label">Letters</div>
+        </div>
+        <div class="bnav-item" onclick="showScreen('quiz')">
+          <div class="bnav-icon">&#127381;</div>
+          <div class="bnav-label">Quiz</div>
+        </div>
+        <div class="bnav-item" onclick="showScreen('progress')">
+          <div class="bnav-icon">&#11088;</div>
+          <div class="bnav-label">Progress</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LETTERS GRID SCREEN -->
+    <div class="screen" id="screen-letters">
+      <div class="letters-header">
+        <div class="back-btn" onclick="showScreen('home')">&#8592;</div>
+        <div>
+          <div class="lh-title">Odia Alphabet</div>
+          <div class="lh-sub">12 of 44 letters learned</div>
+        </div>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="pb-label">Progress</div>
+        <div class="pb-track"><div class="pb-fill"></div></div>
+      </div>
+      <div class="letter-grid-area">
+        <div class="letter-tile learned" onclick="showScreen('trace')"><span class="lt-char">&#x0B05;</span><span class="lt-roman">a</span><span class="lt-star">&#9733;</span></div>
+        <div class="letter-tile learned" onclick="showScreen('trace')"><span class="lt-char">&#x0B06;</span><span class="lt-roman">aa</span><span class="lt-star">&#9733;</span></div>
+        <div class="letter-tile learned" onclick="showScreen('trace')"><span class="lt-char">&#x0B07;</span><span class="lt-roman">i</span><span class="lt-star">&#9733;</span></div>
+        <div class="letter-tile learned" onclick="showScreen('trace')"><span class="lt-char">&#x0B08;</span><span class="lt-roman">ii</span></div>
+        <div class="letter-tile" onclick="showScreen('trace')"><span class="lt-char">&#x0B09;</span><span class="lt-roman">u</span></div>
+        <div class="letter-tile" onclick="showScreen('trace')"><span class="lt-char">&#x0B0A;</span><span class="lt-roman">uu</span></div>
+        <div class="letter-tile" onclick="showScreen('trace')"><span class="lt-char">&#x0B0F;</span><span class="lt-roman">e</span></div>
+        <div class="letter-tile" onclick="showScreen('trace')"><span class="lt-char">&#x0B13;</span><span class="lt-roman">o</span></div>
+        <div class="letter-tile locked"><span class="lt-char">&#x0B15;</span><span class="lt-roman">ka</span></div>
+        <div class="letter-tile locked"><span class="lt-char">&#x0B16;</span><span class="lt-roman">kha</span></div>
+        <div class="letter-tile locked"><span class="lt-char">&#x0B17;</span><span class="lt-roman">ga</span></div>
+        <div class="letter-tile locked"><span class="lt-char">&#x0B18;</span><span class="lt-roman">gha</span></div>
+      </div>
+      <div class="bottom-nav">
+        <div class="bnav-item" onclick="showScreen('home')"><div class="bnav-icon">&#127968;</div><div class="bnav-label">Home</div></div>
+        <div class="bnav-item active"><div class="bnav-icon">&#127381;</div><div class="bnav-label" style="color:#FF6B35;">Letters</div><div class="bnav-dot"></div></div>
+        <div class="bnav-item" onclick="showScreen('quiz')"><div class="bnav-icon">&#127381;</div><div class="bnav-label">Quiz</div></div>
+        <div class="bnav-item" onclick="showScreen('progress')"><div class="bnav-icon">&#11088;</div><div class="bnav-label">Progress</div></div>
+      </div>
+    </div>
+
+    <!-- TRACING SCREEN -->
+    <div class="screen" id="screen-trace">
+      <div class="trace-header">
+        <div class="back-btn" onclick="showScreen('letters')">&#8592;</div>
+        <div>
+          <div class="lh-title">Trace the letter</div>
+          <div class="lh-sub" style="color:rgba(255,255,255,0.75);">Follow the dotted path</div>
+        </div>
+      </div>
+      <div class="trace-body">
+        <div class="letter-hero">
+          &#x0B05;
+          <div class="sound-btn">&#9654;</div>
+        </div>
+        <div class="letter-info-row">
+          <span class="li-name">Aa (&#x0B05;)</span>
+          <span class="li-sound">sounds like "a"</span>
+        </div>
+        <div class="canvas-wrap">
+          <div class="guide-letter">&#x0B05;</div>
+        </div>
+        <div class="trace-tip">&#9998; Trace with your finger!</div>
+        <div class="stars-row">
+          <span class="star-ico">&#11088;</span>
+          <span class="star-ico" style="opacity:0.3;">&#11088;</span>
+          <span class="star-ico" style="opacity:0.3;">&#11088;</span>
+        </div>
+        <div style="font-size:11px;color:#7C3AED;text-align:center;">Trace more carefully for more stars</div>
+      </div>
+      <div class="trace-btns">
+        <button class="tbtn tbtn-clear">&#8635; Clear</button>
+        <button class="tbtn tbtn-next" onclick="showScreen('quiz')">Next &#8594;</button>
+      </div>
+    </div>
+
+    <!-- QUIZ SCREEN -->
+    <div class="screen" id="screen-quiz">
+      <div class="quiz-header">
+        <div class="back-btn" onclick="showScreen('home')">&#8592;</div>
+        <div>
+          <div class="lh-title" style="color:#fff;">Quiz time!</div>
+          <div class="lh-sub" style="color:rgba(255,255,255,0.75);">Question 3 of 10</div>
+        </div>
+      </div>
+      <div class="quiz-body">
+        <div class="quiz-progress">
+          <div class="qp-dot qpd-done"></div>
+          <div class="qp-dot qpd-done"></div>
+          <div class="qp-dot qpd-current"></div>
+          <div class="qp-dot qpd-empty"></div>
+          <div class="qp-dot qpd-empty"></div>
+        </div>
+
+        <div class="quiz-question-box">
+          <div class="qq-prompt">Tap to hear the sound, then pick the right letter</div>
+          <div class="qq-audio-btn">&#128266;</div>
+          <div class="qq-sub">Tap the speaker button</div>
+        </div>
+
+        <div class="quiz-options">
+          <div class="qopt correct">
+            <span class="qopt-char">&#x0B05;</span>
+            <span class="qopt-label">Aa</span>
+          </div>
+          <div class="qopt">
+            <span class="qopt-char">&#x0B07;</span>
+            <span class="qopt-label">I</span>
+          </div>
+          <div class="qopt">
+            <span class="qopt-char">&#x0B09;</span>
+            <span class="qopt-label">U</span>
+          </div>
+          <div class="qopt">
+            <span class="qopt-char">&#x0B13;</span>
+            <span class="qopt-label">O</span>
+          </div>
+        </div>
+
+        <div class="quiz-score-row">
+          <span class="qs-label">Score</span>
+          <span class="qs-val">&#11088; 20 pts</span>
+        </div>
+      </div>
+      <div class="bottom-nav">
+        <div class="bnav-item" onclick="showScreen('home')"><div class="bnav-icon">&#127968;</div><div class="bnav-label">Home</div></div>
+        <div class="bnav-item" onclick="showScreen('letters')"><div class="bnav-icon">&#127381;</div><div class="bnav-label">Letters</div></div>
+        <div class="bnav-item active"><div class="bnav-icon">&#127381;</div><div class="bnav-label" style="color:#0F766E;">Quiz</div><div class="bnav-dot" style="background:#0F766E;"></div></div>
+        <div class="bnav-item" onclick="showScreen('progress')"><div class="bnav-icon">&#11088;</div><div class="bnav-label">Progress</div></div>
+      </div>
+    </div>
+
+    <!-- PROGRESS SCREEN -->
+    <div class="screen" id="screen-progress">
+      <div class="prog-header">
+        <div class="back-btn" onclick="showScreen('home')">&#8592;</div>
+        <div>
+          <div class="lh-title" style="color:#fff;">My progress</div>
+          <div class="lh-sub" style="color:rgba(255,255,255,0.75);">Keep going, superstar!</div>
+        </div>
+      </div>
+      <div class="prog-body">
+        <div>
+          <div class="prog-avatar">&#128102;</div>
+          <div class="prog-name">Aryan</div>
+          <div style="text-align:center;margin-top:4px;"><span class="prog-level">&#127381; Level 3 — Explorer</span></div>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat-card"><div class="sc-val">47</div><div class="sc-label">Letters learned</div></div>
+          <div class="stat-card"><div class="sc-val">7</div><div class="sc-label">Day streak</div></div>
+          <div class="stat-card"><div class="sc-val">3</div><div class="sc-label">Languages</div></div>
+        </div>
+
+        <div style="font-size:11px;font-weight:600;color:#888;letter-spacing:0.06em;text-transform:uppercase;">Language progress</div>
+        <div class="lang-progress-list">
+          <div class="lp-row">
+            <div class="lp-top"><span class="lp-name">&#x0B13; Odia</span><span class="lp-pct">28%</span></div>
+            <div class="lp-track"><div class="lp-fill" style="width:28%;"></div></div>
+          </div>
+          <div class="lp-row">
+            <div class="lp-top"><span class="lp-name">&#x0939; Hindi</span><span class="lp-pct">15%</span></div>
+            <div class="lp-track"><div class="lp-fill" style="width:15%;background:#FF6B35;"></div></div>
+          </div>
+          <div class="lp-row">
+            <div class="lp-top"><span class="lp-name">&#x0B86; Tamil</span><span class="lp-pct">8%</span></div>
+            <div class="lp-track"><div class="lp-fill" style="width:8%;background:#0F766E;"></div></div>
+          </div>
+        </div>
+
+        <div style="font-size:11px;font-weight:600;color:#888;letter-spacing:0.06em;text-transform:uppercase;">Badges earned</div>
+        <div class="badge-row">
+          <div class="badge-item">
+            <div class="badge-circle" style="border-color:#FF6B35;background:#FFF0E6;">&#127775;</div>
+            <div class="badge-label">First letter</div>
+          </div>
+          <div class="badge-item">
+            <div class="badge-circle" style="border-color:#0F766E;background:#F0FDFA;">&#127881;</div>
+            <div class="badge-label">Quiz hero</div>
+          </div>
+          <div class="badge-item">
+            <div class="badge-circle" style="border-color:#854F0B;background:#FAEEDA;">&#128293;</div>
+            <div class="badge-label">7-day streak</div>
+          </div>
+          <div class="badge-item badge-locked">
+            <div class="badge-circle" style="border-color:#888;background:#eee;">&#127941;</div>
+            <div class="badge-label">All vowels</div>
+          </div>
+          <div class="badge-item badge-locked">
+            <div class="badge-circle" style="border-color:#888;background:#eee;">&#127758;</div>
+            <div class="badge-label">3 languages</div>
+          </div>
+        </div>
+        <div style="height:8px;"></div>
+      </div>
+      <div class="bottom-nav">
+        <div class="bnav-item" onclick="showScreen('home')"><div class="bnav-icon">&#127968;</div><div class="bnav-label">Home</div></div>
+        <div class="bnav-item" onclick="showScreen('letters')"><div class="bnav-icon">&#127381;</div><div class="bnav-label">Letters</div></div>
+        <div class="bnav-item" onclick="showScreen('quiz')"><div class="bnav-icon">&#127381;</div><div class="bnav-label">Quiz</div></div>
+        <div class="bnav-item active"><div class="bnav-icon">&#11088;</div><div class="bnav-label" style="color:#0369A1;">Progress</div><div class="bnav-dot" style="background:#0369A1;"></div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="font-size:12px;color:var(--color-text-secondary);text-align:center;max-width:320px;">
+    Tap buttons inside the phone to navigate screens. Tap any letter tile to open the tracing screen.
+  </div>
+</div>
+
+<script>
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  const labels = { home:0, letters:1, trace:2, quiz:3, progress:4 };
+  document.querySelectorAll('.nav-btn')[labels[id]].classList.add('active');
+}
+</script>

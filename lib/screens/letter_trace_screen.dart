@@ -6,8 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lottie/lottie.dart';
 
+import '../data/models/progress_model.dart';
+import '../data/repositories/child_repository.dart';
+import '../data/repositories/letter_repository.dart';
 import '../models/letter.dart';
 import '../painters/letter_trace_painter.dart';
+import '../providers/app_providers.dart';
 import '../providers/progress_provider.dart';
 import '../theme/app_theme.dart';
 
@@ -22,11 +26,8 @@ class LetterTraceScreen extends ConsumerStatefulWidget {
 
 class _LetterTraceScreenState extends ConsumerState<LetterTraceScreen>
     with SingleTickerProviderStateMixin {
-  // User-drawn strokes in canvas coordinates.
   final List<List<Offset>> _drawnStrokes = [];
   List<Offset> _currentStroke = [];
-
-  // Running total of pixels drawn across all strokes.
   double _totalDrawnLength = 0;
 
   bool _completed = false;
@@ -37,7 +38,7 @@ class _LetterTraceScreenState extends ConsumerState<LetterTraceScreen>
   final AudioPlayer _audioPlayer = AudioPlayer();
 
   // The user must draw this fraction of the canvas's short side before the
-  // trace is considered complete.  Tune up/down for difficulty.
+  // trace is considered complete.
   static const double _completionFraction = 1.2;
 
   @override
@@ -61,12 +62,11 @@ class _LetterTraceScreenState extends ConsumerState<LetterTraceScreen>
 
   Future<void> _playAudio() async {
     try {
+      await _audioPlayer.stop();
       await _audioPlayer.play(
         AssetSource(widget.letter.audioPath.replaceFirst('assets/', '')),
       );
-    } catch (_) {
-      // Audio file may not exist yet — silent fail.
-    }
+    } catch (_) {}
   }
 
   // ─── Gesture callbacks ───────────────────────────────────────────────────
@@ -102,15 +102,35 @@ class _LetterTraceScreenState extends ConsumerState<LetterTraceScreen>
     if (_completed) return;
     setState(() {
       _completed = true;
-      _score += 5;
+      _score += 1;
     });
     _confetti.play();
     _starPulse.repeat(reverse: true);
     ref.read(progressProvider.notifier).onLetterTraced(widget.letter.character);
+    _persistProgress();
 
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) _showCompletionDialog();
     });
+  }
+
+  Future<void> _persistProgress() async {
+    final dbId = widget.letter.dbId;
+    if (dbId == null) return;
+
+    try {
+      final child = await ref.read(currentChildProvider.future);
+      if (child.id == null) return;
+      await LetterRepository().updateProgress(
+        childId: child.id!,
+        letterId: dbId,
+        newMasteryLevel: MasteryLevel.trace,
+        sessionAccuracy: 100.0,
+        sessionStars: 1,
+      );
+      await ChildRepository().updateStreak(child.id!);
+      if (mounted) ref.invalidate(childStatsProvider);
+    } catch (_) {}
   }
 
   // ─── UI ─────────────────────────────────────────────────────────────────
@@ -155,24 +175,53 @@ class _LetterTraceScreenState extends ConsumerState<LetterTraceScreen>
             onPanEnd: _onPanEnd,
           ),
 
-          // ── Letter name label (top-left) ──────────────────────────────
+          // ── Letter name + replay button (top-left) ────────────────────
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    widget.letter.character,
-                    style: AppTheme.odiaLetterStyle(size: 40),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        widget.letter.character,
+                        style: AppTheme.odiaLetterStyle(size: 40),
+                      ),
+                      Text(
+                        widget.letter.name,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF888888),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    widget.letter.name,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF888888),
-                      fontWeight: FontWeight.w600,
+                  const SizedBox(width: 10),
+                  GestureDetector(
+                    onTap: _playAudio,
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.15),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.volume_up_rounded,
+                        size: 20,
+                        color: Color(0xFF888888),
+                      ),
                     ),
                   ),
                 ],
@@ -440,7 +489,7 @@ class _CompletionDialogState extends State<_CompletionDialog> {
               children: [
                 Icon(Icons.add, color: Color(0xFFFFD700), size: 22),
                 Text(
-                  '5 Stars',
+                  '1 Star',
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,

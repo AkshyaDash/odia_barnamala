@@ -6,6 +6,7 @@ class OdiaLetter {
   final String audioPath;
   final Color tileColor;
   final bool isVowel;
+  final int? dbId;
 
   const OdiaLetter({
     required this.character,
@@ -13,5 +14,6 @@ class OdiaLetter {
     required this.audioPath,
     required this.tileColor,
     required this.isVowel,
+    this.dbId,
   });
 }

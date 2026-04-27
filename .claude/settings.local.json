@@ -7,7 +7,16 @@
       "Read(//c/Users/akshy/flutter/bin/**)",
       "Read(//c/development/flutter/bin/**)",
       "Bash(find /c -maxdepth 4 -name \"flutter.bat\")",
-      "Bash(/c/flutter/bin/flutter.bat analyze *)"
+      "Bash(/c/flutter/bin/flutter.bat analyze *)",
+      "Bash(flutter analyze *)",
+      "Bash(cmd *)",
+      "PowerShell(Get-ChildItem *)",
+      "Read(//c/flutter/**)",
+      "Read(//c/src/flutter/**)",
+      "PowerShell(flutter build *)",
+      "Bash(/c/Users/Akshya/flutter/bin/flutter analyze *)",
+      "Bash(grep -v \"^$\")",
+      "Bash(/c/Users/Akshya/flutter/bin/flutter build *)"
     ]
   }
 }

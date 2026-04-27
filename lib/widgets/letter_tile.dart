@@ -1,4 +1,3 @@
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 
 import '../models/letter.dart';
@@ -18,7 +17,6 @@ class _LetterTileState extends State<LetterTile>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
-  final AudioPlayer _player = AudioPlayer();
 
   @override
   void initState() {
@@ -36,20 +34,11 @@ class _LetterTileState extends State<LetterTile>
   @override
   void dispose() {
     _controller.dispose();
-    _player.dispose();
     super.dispose();
   }
 
-  Future<void> _onTap() async {
+  void _onTap() {
     _controller.forward(from: 0);
-    try {
-      await _player.stop();
-      await _player.play(AssetSource(
-        widget.letter.audioPath.replaceFirst('assets/', ''),
-      ));
-    } catch (_) {
-      // Audio file may not exist yet — silent fail
-    }
     if (mounted) {
       Navigator.of(context).push(
         MaterialPageRoute(
