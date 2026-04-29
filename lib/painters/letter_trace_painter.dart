@@ -12,10 +12,12 @@ import 'package:flutter/material.dart';
 class LetterTracePainter extends CustomPainter {
   final String character;
   final List<List<Offset>> drawnStrokes;
+  final Color inkColor;
 
   const LetterTracePainter({
     required this.character,
     required this.drawnStrokes,
+    this.inkColor = Colors.orangeAccent,
   });
 
   @override
@@ -110,7 +112,7 @@ class LetterTracePainter extends CustomPainter {
 
   void _drawUserStrokes(Canvas canvas, Size size) {
     final inkPaint = Paint()
-      ..color = Colors.orangeAccent
+      ..color = inkColor
       ..strokeWidth = 22.0
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
@@ -147,14 +149,16 @@ class LetterTracePainter extends CustomPainter {
         center,
         10.0 * i,
         Paint()
-          ..color = Colors.orangeAccent.withValues(alpha: 0.15 / i)
+          ..color = inkColor.withValues(alpha: 0.15 / i)
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
       );
     }
-    canvas.drawCircle(center, 10, Paint()..color = Colors.orangeAccent);
+    canvas.drawCircle(center, 10, Paint()..color = inkColor);
   }
 
   @override
   bool shouldRepaint(LetterTracePainter old) =>
-      old.character != character || old.drawnStrokes != drawnStrokes;
+      old.character != character ||
+      old.drawnStrokes != drawnStrokes ||
+      old.inkColor != inkColor;
 }

@@ -1,95 +1,143 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../data/database/database_helper.dart';
-import '../data/repositories/child_repository.dart';
-import '../data/repositories/progress_repository.dart';
-import '../providers/app_providers.dart';
-import '../providers/letter_grid_provider.dart';
-import '../providers/progress_provider.dart';
+import '../data/bhasha_database_helper.dart';
+import '../models/language.dart';
+import '../models/letter_new.dart';
+import '../models/letter_progress.dart';
+import '../screens/splash_screen.dart';
 import '../theme/bhasha_design_system.dart';
-import '../widgets/celebration_overlay.dart';
-import 'letter_trace_screen.dart';
 
-class LetterGridScreen extends ConsumerStatefulWidget {
-  /// Called when the back button in the header is pressed. When null, falls
-  /// back to [Navigator.maybePop] — useful when the screen is pushed as a
-  /// standalone route rather than embedded inside [HomeScreen]'s IndexedStack.
-  final VoidCallback? onBack;
+class LetterGridScreen extends StatefulWidget {
+  final Language language;
 
-  const LetterGridScreen({super.key, this.onBack});
+  const LetterGridScreen({super.key, required this.language});
 
   @override
-  ConsumerState<LetterGridScreen> createState() => _LetterGridScreenState();
+  State<LetterGridScreen> createState() => _LetterGridScreenState();
 }
 
-class _LetterGridScreenState extends ConsumerState<LetterGridScreen> {
+class _LetterGridScreenState extends State<LetterGridScreen> {
+  final DatabaseHelper _db = DatabaseHelper.instance;
+
+  List<Letter> _letters = [];
+  Map<int, LetterProgress> _progressMap = {};
+  bool _loading = true;
   bool _resetting = false;
 
-  Future<void> _onTileTap(LetterGridItem item) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => LetterTraceScreen(letter: item.odiaLetter),
-      ),
-    );
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    if (!mounted) return;
+    setState(() => _loading = true);
+
+    final letters = await _db.getLettersForLanguage(widget.language.id!);
+    final allProgress = await _db.getAllProgress();
+
+    final progressMap = <int, LetterProgress>{};
+    for (final p in allProgress) {
+      progressMap[p.letterId] = p;
+    }
+
     if (mounted) {
-      ref.invalidate(letterGridProvider);
+      setState(() {
+        _letters = letters;
+        _progressMap = progressMap;
+        _loading = false;
+      });
     }
   }
 
-  Future<void> _showResetConfirmation() async {
+  Future<void> _onTileTap(Letter letter) async {
+    await Navigator.of(context).pushNamed(kRouteTrace, arguments: letter);
+    // Refresh progress after returning from trace screen
+    if (mounted) _loadData();
+  }
+
+  Future<void> _showResetConfirm() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      barrierDismissible: true,
-      builder: (ctx) => const _ResetConfirmDialog(),
-    );
-    if (confirmed == true && mounted) {
-      await _performReset();
-    }
-  }
-
-  Future<void> _performReset() async {
-    setState(() => _resetting = true);
-    try {
-      final child = ref.read(currentChildProvider).valueOrNull;
-      if (child?.id == null) return;
-      final childId = child!.id!;
-
-      await ProgressRepository().deleteAllProgressForChild(childId);
-
-      await DatabaseHelper.instance.delete(
-        DatabaseHelper.tableStreaks,
-        where: 'child_id = ?',
-        whereArgs: [childId],
-      );
-
-      await ChildRepository().updateChild(
-        child.copyWith(
-          totalStars: 0,
-          coins: 0,
-          currentStreak: 0,
-          longestStreak: 0,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(BhashaSpacing.radiusLg),
         ),
-      );
+        icon: const Icon(Icons.restart_alt,
+            color: BhashaColors.primary, size: 36),
+        title: const Text(
+          'Start Fresh?',
+          style: TextStyle(
+            fontFamily: BhashaTextStyles.fontFamily,
+            fontWeight: FontWeight.w800,
+            fontSize: 18,
+            color: BhashaColors.textPrimary,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        content: Text(
+          'This will erase all progress for ${widget.language.name}.',
+          style: const TextStyle(
+            fontFamily: BhashaTextStyles.fontFamily,
+            fontSize: 14,
+            color: BhashaColors.textSecondary,
+            height: 1.5,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        actionsAlignment: MainAxisAlignment.spaceEvenly,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel',
+                style: TextStyle(fontFamily: BhashaTextStyles.fontFamily)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEF4444),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Reset',
+                style: TextStyle(fontFamily: BhashaTextStyles.fontFamily)),
+          ),
+        ],
+      ),
+    );
 
-      ref.invalidate(letterGridProvider);
-      ref.invalidate(childStatsProvider);
-      ref.invalidate(currentChildProvider);
-    } finally {
-      if (mounted) setState(() => _resetting = false);
+    if (confirmed == true && mounted) {
+      setState(() => _resetting = true);
+      await _db.resetProgressForLanguage(widget.language.id!);
+      if (mounted) {
+        setState(() => _resetting = false);
+        _loadData();
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final showCelebration =
-        ref.watch(progressProvider.select((s) => s.showCelebration));
-    final gridAsync = ref.watch(letterGridProvider);
+    final learnedCount =
+        _progressMap.values.where((p) => p.stars > 0).length;
+    final totalCount = _letters.length;
 
-    final subtitle = gridAsync.maybeWhen(
-      data: (d) => '${d.learnedCount} of ${d.totalCount} letters learned',
-      orElse: () => null,
-    );
+    // Split into vowels (sort_order 1-13) and consonants (14+)
+    final vowels = _letters.where((l) => l.sortOrder <= 13).toList();
+    final consonants = _letters.where((l) => l.sortOrder > 13).toList();
+
+    // Compute progressive unlock per group
+    int vowelLearned = vowels
+        .where((l) => (_progressMap[l.id]?.stars ?? 0) > 0)
+        .length;
+    int consonantLearned = consonants
+        .where((l) => (_progressMap[l.id]?.stars ?? 0) > 0)
+        .length;
+    final vowelCeiling = vowelLearned + 8;
+    final consonantCeiling = consonantLearned + 8;
+
+    final String subtitle =
+        _loading ? '' : '$learnedCount of $totalCount letters learned';
 
     return Scaffold(
       backgroundColor: BhashaColors.scaffold,
@@ -101,40 +149,75 @@ class _LetterGridScreenState extends ConsumerState<LetterGridScreen> {
               SafeArea(
                 bottom: false,
                 child: BhashaHeader(
-                  title: 'Odia Alphabet',
-                  subtitle: subtitle,
+                  title: '${widget.language.name} Alphabet',
+                  subtitle: _loading ? null : subtitle,
                   color: BhashaColors.primary,
-                  onBack: widget.onBack ?? () => Navigator.maybePop(context),
-                  trailing: _ResetButton(
-                    onTap: _resetting ? null : _showResetConfirmation,
+                  onBack: () => Navigator.pop(context),
+                  trailing: GestureDetector(
+                    onTap: _resetting ? null : _showResetConfirm,
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.25),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.restart_alt,
+                          color: Colors.white, size: 18),
+                    ),
                   ),
                 ),
               ),
-              gridAsync.maybeWhen(
-                data: (data) => _ProgressBar(
-                  learned: data.learnedCount,
-                  total: data.totalCount,
-                ),
-                orElse: () => const SizedBox.shrink(),
-              ),
+              if (!_loading) _ProgressBar(learned: learnedCount, total: totalCount),
               Expanded(
-                child: gridAsync.when(
-                  loading: () => const Center(
-                    child: CircularProgressIndicator(
-                      color: BhashaColors.primary,
-                    ),
-                  ),
-                  error: (_, __) => const Center(
-                    child: Text(
-                      'Could not load letters',
-                      style: BhashaTextStyles.body,
-                    ),
-                  ),
-                  data: (data) => _LetterTabs(
-                    data: data,
-                    onTileTap: _onTileTap,
-                  ),
-                ),
+                child: _loading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                            color: BhashaColors.primary))
+                    : DefaultTabController(
+                        length: 2,
+                        child: Column(
+                          children: [
+                            const TabBar(
+                              indicatorColor: BhashaColors.primary,
+                              labelColor: BhashaColors.primary,
+                              unselectedLabelColor: BhashaColors.textHint,
+                              labelStyle: TextStyle(
+                                fontFamily: BhashaTextStyles.fontFamily,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              unselectedLabelStyle: TextStyle(
+                                fontFamily: BhashaTextStyles.fontFamily,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              tabs: [
+                                Tab(text: 'ସ୍ୱର  Vowels'),
+                                Tab(text: 'ବ୍ୟଞ୍ଜନ  Consonants'),
+                              ],
+                            ),
+                            Expanded(
+                              child: TabBarView(
+                                children: [
+                                  _LetterGrid(
+                                    letters: vowels,
+                                    progressMap: _progressMap,
+                                    unlockCeiling: vowelCeiling,
+                                    onTap: _onTileTap,
+                                  ),
+                                  _LetterGrid(
+                                    letters: consonants,
+                                    progressMap: _progressMap,
+                                    unlockCeiling: consonantCeiling,
+                                    onTap: _onTileTap,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
               ),
             ],
           ),
@@ -142,123 +225,18 @@ class _LetterGridScreenState extends ConsumerState<LetterGridScreen> {
             const ColoredBox(
               color: Colors.black26,
               child: Center(
-                child: CircularProgressIndicator(color: BhashaColors.primary),
-              ),
+                  child: CircularProgressIndicator(
+                      color: BhashaColors.primary)),
             ),
-          if (showCelebration) const CelebrationOverlay(),
         ],
       ),
     );
   }
 }
 
-// -----------------------------------------------------------------------------
-// Reset button (trailing widget inside BhashaHeader)
-// -----------------------------------------------------------------------------
-
-class _ResetButton extends StatelessWidget {
-  final VoidCallback? onTap;
-
-  const _ResetButton({this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 32,
-        height: 32,
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.25),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: const Icon(Icons.restart_alt, color: Colors.white, size: 18),
-      ),
-    );
-  }
-}
-
-// -----------------------------------------------------------------------------
-// Confirmation dialog
-// -----------------------------------------------------------------------------
-
-class _ResetConfirmDialog extends StatelessWidget {
-  const _ResetConfirmDialog();
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(BhashaSpacing.radiusLg),
-      ),
-      backgroundColor: BhashaColors.surface,
-      icon: const Icon(Icons.restart_alt,
-          color: BhashaColors.primary, size: 36),
-      title: const Text(
-        'Start Fresh?',
-        style: TextStyle(
-          fontFamily: BhashaTextStyles.fontFamily,
-          fontWeight: FontWeight.w800,
-          fontSize: 18,
-          color: BhashaColors.textPrimary,
-        ),
-        textAlign: TextAlign.center,
-      ),
-      content: const Text(
-        'This will erase all your stars, streaks, and progress.\nAre you sure?',
-        style: TextStyle(
-          fontFamily: BhashaTextStyles.fontFamily,
-          fontSize: 14,
-          color: BhashaColors.textSecondary,
-          height: 1.5,
-        ),
-        textAlign: TextAlign.center,
-      ),
-      actionsAlignment: MainAxisAlignment.spaceEvenly,
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          style: TextButton.styleFrom(
-            foregroundColor: BhashaColors.textSecondary,
-            padding: const EdgeInsets.symmetric(
-                horizontal: BhashaSpacing.xl, vertical: BhashaSpacing.sm),
-            shape: RoundedRectangleBorder(
-              borderRadius:
-                  BorderRadius.circular(BhashaSpacing.radiusCircle),
-              side: const BorderSide(color: BhashaColors.tileBorderDef),
-            ),
-          ),
-          child: const Text('Cancel',
-              style: TextStyle(
-                  fontFamily: BhashaTextStyles.fontFamily,
-                  fontWeight: FontWeight.w700)),
-        ),
-        ElevatedButton(
-          onPressed: () => Navigator.pop(context, true),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFEF4444),
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(
-                horizontal: BhashaSpacing.xl, vertical: BhashaSpacing.sm),
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius:
-                  BorderRadius.circular(BhashaSpacing.radiusCircle),
-            ),
-          ),
-          child: const Text('Yes, reset',
-              style: TextStyle(
-                  fontFamily: BhashaTextStyles.fontFamily,
-                  fontWeight: FontWeight.w700)),
-        ),
-      ],
-    );
-  }
-}
-
-// -----------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
 // Progress bar
-// -----------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
 
 class _ProgressBar extends StatelessWidget {
   final int learned;
@@ -287,8 +265,8 @@ class _ProgressBar extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progress,
               backgroundColor: const Color(0xFFEEDDCC),
-              valueColor: const AlwaysStoppedAnimation<Color>(
-                  BhashaColors.primary),
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(BhashaColors.primary),
               minHeight: 7,
             ),
           ),
@@ -298,67 +276,22 @@ class _ProgressBar extends StatelessWidget {
   }
 }
 
-// -----------------------------------------------------------------------------
-// Vowels / Consonants tab layout
-// -----------------------------------------------------------------------------
-
-class _LetterTabs extends StatelessWidget {
-  final LetterGridData data;
-  final void Function(LetterGridItem) onTileTap;
-
-  const _LetterTabs({
-    required this.data,
-    required this.onTileTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Column(
-        children: [
-          const TabBar(
-            indicatorColor: BhashaColors.primary,
-            labelColor: BhashaColors.primary,
-            unselectedLabelColor: BhashaColors.textHint,
-            labelStyle: TextStyle(
-              fontFamily: BhashaTextStyles.fontFamily,
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-            ),
-            unselectedLabelStyle: TextStyle(
-              fontFamily: BhashaTextStyles.fontFamily,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-            tabs: [
-              Tab(text: 'ସ୍ୱର  Vowels'),
-              Tab(text: 'ବ୍ୟଞ୍ଜନ  Consonants'),
-            ],
-          ),
-          Expanded(
-            child: TabBarView(
-              children: [
-                _LetterGrid(items: data.vowels, onTap: onTileTap),
-                _LetterGrid(items: data.consonants, onTap: onTileTap),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// -----------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
 // 4-column letter grid
-// -----------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
 
 class _LetterGrid extends StatelessWidget {
-  final List<LetterGridItem> items;
-  final void Function(LetterGridItem) onTap;
+  final List<Letter> letters;
+  final Map<int, LetterProgress> progressMap;
+  final int unlockCeiling;
+  final Future<void> Function(Letter) onTap;
 
-  const _LetterGrid({required this.items, required this.onTap});
+  const _LetterGrid({
+    required this.letters,
+    required this.progressMap,
+    required this.unlockCeiling,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -372,15 +305,20 @@ class _LetterGrid extends StatelessWidget {
         crossAxisSpacing: BhashaSpacing.sm,
         mainAxisSpacing: BhashaSpacing.sm,
       ),
-      itemCount: items.length,
+      itemCount: letters.length,
       itemBuilder: (context, index) {
-        final item = items[index];
+        final letter = letters[index];
+        final progress = progressMap[letter.id];
+        final isLearned = (progress?.stars ?? 0) > 0;
+        // +1 because index is 0-based, ceiling is 1-based count
+        final isLocked = !isLearned && (index + 1) > unlockCeiling;
+
         return BhashaLetterTile(
-          character: item.character,
-          romanization: item.romanization,
-          isLearned: item.isLearned,
-          isLocked: item.isLocked,
-          onTap: () => onTap(item),
+          character: letter.unicode,
+          romanization: letter.romanized,
+          isLearned: isLearned,
+          isLocked: isLocked,
+          onTap: () => onTap(letter),
         );
       },
     );

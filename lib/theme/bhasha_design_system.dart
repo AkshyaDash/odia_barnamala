@@ -47,6 +47,20 @@ class BhashaColors {
   static const Color optionCorrectBorder = Color(0xFF22C55E);
   static const Color optionWrong = Color(0xFFFFF5F5);
   static const Color optionWrongBorder = Color(0xFFEF4444);
+
+  // Language card backgrounds
+  static const Color langOdia = Color(0xFFFFF0E6);
+  static const Color langHindi = Color(0xFFFFF0F5);
+  static const Color langTamil = Color(0xFFF0F5FF);
+  static const Color langTelugu = Color(0xFFF0FFF5);
+  static const Color langKannada = Color(0xFFFFF8E1);
+  static const Color langBengali = Color(0xFFF5F0FF);
+  static const Color langGujarati = Color(0xFFFFFAF0);
+  static const Color langMalayalam = Color(0xFFF0FFFA);
+  static const Color langPunjabi = Color(0xFFFFF5E6);
+  static const Color langMarathi = Color(0xFFF5FFF0);
+  static const Color langUrdu = Color(0xFFF0F5FF);
+  static const Color langAssamese = Color(0xFFFFF8F5);
 }
 
 // -----------------------------------------------------------------------------
@@ -354,6 +368,208 @@ class SectionLabel extends StatelessWidget {
       child: Text(
         text.toUpperCase(),
         style: BhashaTextStyles.sectionLabel,
+      ),
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// 5. THEME DATA
+// -----------------------------------------------------------------------------
+ThemeData bhashaTheme() {
+  return ThemeData(
+    useMaterial3: true,
+    fontFamily: BhashaTextStyles.fontFamily,
+    scaffoldBackgroundColor: BhashaColors.scaffold,
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: BhashaColors.primary,
+      primary: BhashaColors.primary,
+      surface: BhashaColors.surface,
+    ),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: BhashaColors.primary,
+      foregroundColor: Colors.white,
+      elevation: 0,
+      centerTitle: false,
+      titleTextStyle: BhashaTextStyles.screenTitle,
+    ),
+    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      backgroundColor: BhashaColors.surface,
+      selectedItemColor: BhashaColors.primary,
+      unselectedItemColor: BhashaColors.textHint,
+      showSelectedLabels: true,
+      showUnselectedLabels: true,
+      type: BottomNavigationBarType.fixed,
+      elevation: 8,
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: BhashaColors.primary,
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(BhashaSpacing.radiusMd),
+        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: BhashaSpacing.lg,
+          vertical: BhashaSpacing.md,
+        ),
+        textStyle: const TextStyle(
+          fontFamily: BhashaTextStyles.fontFamily,
+          fontWeight: FontWeight.w700,
+          fontSize: 14,
+        ),
+      ),
+    ),
+  );
+}
+
+// -----------------------------------------------------------------------------
+// 6. ADDITIONAL SHARED WIDGETS
+// -----------------------------------------------------------------------------
+
+/// Progress bar row used in language progress list.
+class LanguageProgressRow extends StatelessWidget {
+  final String languageName;
+  final String script;
+  final double progress;
+  final Color color;
+
+  const LanguageProgressRow({
+    super.key,
+    required this.languageName,
+    required this.script,
+    required this.progress,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: BhashaSpacing.sm),
+      padding: const EdgeInsets.all(BhashaSpacing.md),
+      decoration: BoxDecoration(
+        color: BhashaColors.surface,
+        borderRadius: BorderRadius.circular(BhashaSpacing.radiusMd),
+        border: Border.all(color: BhashaColors.progressBorder, width: 1.5),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Text(script, style: const TextStyle(fontSize: 18)),
+              const SizedBox(width: 8),
+              Text(languageName,
+                  style: BhashaTextStyles.cardTitle
+                      .copyWith(color: BhashaColors.progress)),
+              const Spacer(),
+              Text('${(progress * 100).round()}%',
+                  style: BhashaTextStyles.bodySmall),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: progress,
+              backgroundColor: BhashaColors.progressLight,
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+              minHeight: 6,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Stat card for the progress screen.
+class StatCard extends StatelessWidget {
+  final String value;
+  final String label;
+  final Color color;
+
+  const StatCard({
+    super.key,
+    required this.value,
+    required this.label,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(BhashaSpacing.md),
+      decoration: BoxDecoration(
+        color: BhashaColors.surface,
+        borderRadius: BorderRadius.circular(BhashaSpacing.radiusMd),
+        border: Border.all(color: BhashaColors.progressBorder, width: 1.5),
+      ),
+      child: Column(
+        children: [
+          Text(value,
+              style: BhashaTextStyles.statValue.copyWith(color: color)),
+          const SizedBox(height: 2),
+          Text(label,
+              style: BhashaTextStyles.bodySmall.copyWith(fontSize: 9),
+              textAlign: TextAlign.center),
+        ],
+      ),
+    );
+  }
+}
+
+/// Quiz option tile.
+class QuizOption extends StatelessWidget {
+  final String character;
+  final String label;
+  final bool isCorrect;
+  final bool isWrong;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const QuizOption({
+    super.key,
+    required this.character,
+    required this.label,
+    this.isCorrect = false,
+    this.isWrong = false,
+    this.isSelected = false,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    Color bg = isCorrect
+        ? BhashaColors.optionCorrect
+        : isWrong
+            ? BhashaColors.optionWrong
+            : BhashaColors.surface;
+
+    Color border = isCorrect
+        ? BhashaColors.optionCorrectBorder
+        : isWrong
+            ? BhashaColors.optionWrongBorder
+            : BhashaColors.quizBorder;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(BhashaSpacing.radiusMd),
+          border: Border.all(color: border, width: 2.5),
+        ),
+        child: Column(
+          children: [
+            Text(character,
+                style: const TextStyle(fontSize: 28, height: 1.2)),
+            const SizedBox(height: 4),
+            Text(label,
+                style: BhashaTextStyles.bodySmall.copyWith(fontSize: 10)),
+          ],
+        ),
       ),
     );
   }

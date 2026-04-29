@@ -3,43 +3,52 @@ import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lottie/lottie.dart';
+import 'package:provider/provider.dart';
 
-import '../data/models/progress_model.dart';
-import '../data/repositories/child_repository.dart';
-import '../data/repositories/letter_repository.dart';
-import '../models/letter.dart';
+import '../data/bhasha_database_helper.dart';
+import '../models/letter_new.dart';
 import '../painters/letter_trace_painter.dart';
-import '../providers/app_providers.dart';
-import '../providers/progress_provider.dart';
-import '../theme/app_theme.dart';
+import '../providers/home_provider.dart';
+import '../theme/bhasha_design_system.dart';
 
-class LetterTraceScreen extends ConsumerStatefulWidget {
-  final OdiaLetter letter;
+class LetterTraceScreen extends StatefulWidget {
+  final Letter letter;
 
   const LetterTraceScreen({super.key, required this.letter});
 
   @override
-  ConsumerState<LetterTraceScreen> createState() => _LetterTraceScreenState();
+  State<LetterTraceScreen> createState() => _LetterTraceScreenState();
 }
 
-class _LetterTraceScreenState extends ConsumerState<LetterTraceScreen>
+class _LetterTraceScreenState extends State<LetterTraceScreen>
     with SingleTickerProviderStateMixin {
   final List<List<Offset>> _drawnStrokes = [];
   List<Offset> _currentStroke = [];
   double _totalDrawnLength = 0;
+  double _canvasShortestSide = 300.0;
 
   bool _completed = false;
-  int _score = 0;
 
   late ConfettiController _confetti;
   late AnimationController _starPulse;
   final AudioPlayer _audioPlayer = AudioPlayer();
 
-  // The user must draw this fraction of the canvas's short side before the
-  // trace is considered complete.
-  static const double _completionFraction = 1.2;
+  Color _inkColor = Colors.orangeAccent;
+
+  static const double _targetFraction = 3.0;
+  static const double _completionPercent = 0.95;
+
+  static const _colorOptions = [
+    Colors.orangeAccent,
+    Colors.redAccent,
+    Colors.pinkAccent,
+    Colors.purpleAccent,
+    Colors.blueAccent,
+    Colors.tealAccent,
+    Colors.greenAccent,
+    Colors.yellow,
+  ];
 
   @override
   void initState() {
@@ -49,7 +58,7 @@ class _LetterTraceScreenState extends ConsumerState<LetterTraceScreen>
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
-    _playAudio();
+    _playLetterAudio();
   }
 
   @override
@@ -60,12 +69,12 @@ class _LetterTraceScreenState extends ConsumerState<LetterTraceScreen>
     super.dispose();
   }
 
-  Future<void> _playAudio() async {
+  // Strip "assets/" prefix — audioplayers uses AssetSource which prepends it
+  Future<void> _playLetterAudio() async {
     try {
       await _audioPlayer.stop();
-      await _audioPlayer.play(
-        AssetSource(widget.letter.audioPath.replaceFirst('assets/', '')),
-      );
+      final path = widget.letter.audioFile.replaceFirst('assets/', '');
+      await _audioPlayer.play(AssetSource(path));
     } catch (_) {}
   }
 
@@ -85,65 +94,61 @@ class _LetterTraceScreenState extends ConsumerState<LetterTraceScreen>
     if (_currentStroke.isNotEmpty) {
       _totalDrawnLength += (newPoint - _currentStroke.last).distance;
     }
+    _canvasShortestSide = canvasSize.shortestSide;
     setState(() => _currentStroke.add(newPoint));
-  }
-
-  void _onPanEnd(DragEndDetails d, Size canvasSize) {
-    if (_completed) return;
-    final threshold = canvasSize.shortestSide * _completionFraction;
-    if (_totalDrawnLength >= threshold) {
+    if (_traceProgress >= _completionPercent) {
       _triggerCompletion();
     }
   }
 
-  // ─── Completion logic ────────────────────────────────────────────────────
+  void _onPanEnd(DragEndDetails d, Size canvasSize) {
+    if (_completed) return;
+    _canvasShortestSide = canvasSize.shortestSide;
+    if (_traceProgress >= _completionPercent) {
+      _triggerCompletion();
+    }
+  }
+
+  double get _traceProgress =>
+      (_totalDrawnLength / (_canvasShortestSide * _targetFraction)).clamp(0.0, 1.0);
+
+  // ─── Completion ─────────────────────────────────────────────────────────
 
   void _triggerCompletion() {
     if (_completed) return;
-    setState(() {
-      _completed = true;
-      _score += 1;
-    });
+    setState(() => _completed = true);
     _confetti.play();
     _starPulse.repeat(reverse: true);
-    ref.read(progressProvider.notifier).onLetterTraced(widget.letter.character);
     _persistProgress();
-
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) _showCompletionDialog();
     });
   }
 
   Future<void> _persistProgress() async {
-    final dbId = widget.letter.dbId;
-    if (dbId == null) return;
-
+    final id = widget.letter.id;
+    if (id == null) return;
     try {
-      final child = await ref.read(currentChildProvider.future);
-      if (child.id == null) return;
-      await LetterRepository().updateProgress(
-        childId: child.id!,
-        letterId: dbId,
-        newMasteryLevel: MasteryLevel.trace,
-        sessionAccuracy: 100.0,
-        sessionStars: 1,
-      );
-      await ChildRepository().updateStreak(child.id!);
-      if (mounted) ref.invalidate(childStatsProvider);
+      await DatabaseHelper.instance.saveProgress(id, 1);
+      await DatabaseHelper.instance.updateStreak();
+      // Refresh the streak shown on the home screen
+      if (mounted) {
+        context.read<HomeProvider>().refreshStreak();
+        context.read<HomeProvider>().refreshLastAccessed();
+      }
     } catch (_) {}
   }
 
-  // ─── UI ─────────────────────────────────────────────────────────────────
-
   void _showCompletionDialog() {
+    final nav = Navigator.of(context);
     showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (_) => _CompletionDialog(
         letter: widget.letter,
         onNext: () {
-          Navigator.of(context).pop(); // dialog
-          Navigator.of(context).pop(); // trace screen
+          if (nav.canPop()) nav.pop(); // dismiss dialog
+          if (nav.canPop()) nav.pop(); // back to grid
         },
       ),
     );
@@ -160,22 +165,25 @@ class _LetterTraceScreenState extends ConsumerState<LetterTraceScreen>
     _starPulse.reset();
   }
 
+  // ─── Build ───────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: BhashaColors.traceLight,
       body: Stack(
         children: [
-          // ── Main tracing area ──────────────────────────────────────────
+          // Tracing canvas
           _TracingArea(
-            character: widget.letter.character,
+            character: widget.letter.unicode,
             drawnStrokes: _drawnStrokes,
+            inkColor: _inkColor,
             onPanStart: _onPanStart,
             onPanUpdate: _onPanUpdate,
             onPanEnd: _onPanEnd,
           ),
 
-          // ── Letter name + replay button (top-left) ────────────────────
+          // Letter name + replay (top-left)
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -187,12 +195,16 @@ class _LetterTraceScreenState extends ConsumerState<LetterTraceScreen>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        widget.letter.character,
-                        style: AppTheme.odiaLetterStyle(size: 40),
+                        widget.letter.unicode,
+                        style: const TextStyle(
+                          fontSize: 40,
+                          height: 1.0,
+                        ),
                       ),
                       Text(
-                        widget.letter.name,
+                        widget.letter.romanized,
                         style: const TextStyle(
+                          fontFamily: BhashaTextStyles.fontFamily,
                           fontSize: 14,
                           color: Color(0xFF888888),
                           fontWeight: FontWeight.w600,
@@ -202,7 +214,7 @@ class _LetterTraceScreenState extends ConsumerState<LetterTraceScreen>
                   ),
                   const SizedBox(width: 10),
                   GestureDetector(
-                    onTap: _playAudio,
+                    onTap: _playLetterAudio,
                     child: Container(
                       width: 36,
                       height: 36,
@@ -220,7 +232,7 @@ class _LetterTraceScreenState extends ConsumerState<LetterTraceScreen>
                       child: const Icon(
                         Icons.volume_up_rounded,
                         size: 20,
-                        color: Color(0xFF888888),
+                        color: BhashaColors.trace,
                       ),
                     ),
                   ),
@@ -229,48 +241,167 @@ class _LetterTraceScreenState extends ConsumerState<LetterTraceScreen>
             ),
           ),
 
-          // ── Close button (top-right) ──────────────────────────────────
+          // Close button (top-right)
           SafeArea(
             child: Align(
               alignment: Alignment.topRight,
               child: Padding(
                 padding: const EdgeInsets.all(12),
-                child: _CloseButton(
-                  onPressed: () => Navigator.of(context).pop(),
+                child: GestureDetector(
+                  onTap: () => Navigator.of(context).pop(),
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE74C3C),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.25),
+                          blurRadius: 6,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.close_rounded,
+                        color: Colors.white, size: 26),
+                  ),
                 ),
               ),
             ),
           ),
 
-          // ── Reset button (bottom-left) ────────────────────────────────
+          // Reset button (bottom-left)
           SafeArea(
             child: Align(
               alignment: Alignment.bottomLeft,
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: FloatingActionButton.small(
-                  heroTag: 'reset',
+                  heroTag: 'trace_reset',
                   backgroundColor: Colors.white,
                   elevation: 4,
                   onPressed: _resetTrace,
-                  child: const Icon(Icons.refresh_rounded, color: Colors.grey),
+                  child: const Icon(Icons.refresh_rounded,
+                      color: Colors.grey),
                 ),
               ),
             ),
           ),
 
-          // ── Score card (bottom-right) ─────────────────────────────────
+          // Progress badge (bottom-right)
           SafeArea(
             child: Align(
               alignment: Alignment.bottomRight,
               child: Padding(
                 padding: const EdgeInsets.all(20),
-                child: _ScoreCard(score: _score, pulse: _starPulse),
+                child: AnimatedBuilder(
+                  animation: _starPulse,
+                  builder: (context, child) {
+                    final scale = 1.0 + _starPulse.value * 0.15;
+                    return Transform.scale(scale: scale, child: child);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: BhashaColors.traceLight,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                          color: BhashaColors.traceBorder, width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _completed
+                              ? Icons.star_rounded
+                              : Icons.star_border_rounded,
+                          color: _completed
+                              ? const Color(0xFFFFB800)
+                              : BhashaColors.textHint,
+                          size: 28,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          _completed
+                              ? 'Done!'
+                              : '${(_traceProgress * 100).round()}%',
+                          style: TextStyle(
+                            fontFamily: BhashaTextStyles.fontFamily,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: _completed
+                                ? const Color(0xFF7D5A00)
+                                : BhashaColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
 
-          // ── Confetti ─────────────────────────────────────────────────
+          // Color picker strip (bottom-center)
+          SafeArea(
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 20),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(40),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.12),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: _colorOptions.map((color) {
+                      final selected = color.toARGB32() == _inkColor.toARGB32();
+                      return GestureDetector(
+                        onTap: () => setState(() => _inkColor = color),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          width: selected ? 34 : 28,
+                          height: selected ? 34 : 28,
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: selected
+                                  ? Colors.black87
+                                  : Colors.transparent,
+                              width: 2.5,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Confetti
           Align(
             alignment: Alignment.topCenter,
             child: ConfettiWidget(
@@ -297,11 +428,14 @@ class _LetterTraceScreenState extends ConsumerState<LetterTraceScreen>
   }
 }
 
-// ─── Tracing area widget ────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// Tracing canvas
+// ---------------------------------------------------------------------------
 
 class _TracingArea extends StatefulWidget {
   final String character;
   final List<List<Offset>> drawnStrokes;
+  final Color inkColor;
   final void Function(DragStartDetails) onPanStart;
   final void Function(DragUpdateDetails, Size) onPanUpdate;
   final void Function(DragEndDetails, Size) onPanEnd;
@@ -309,6 +443,7 @@ class _TracingArea extends StatefulWidget {
   const _TracingArea({
     required this.character,
     required this.drawnStrokes,
+    required this.inkColor,
     required this.onPanStart,
     required this.onPanUpdate,
     required this.onPanEnd,
@@ -336,6 +471,7 @@ class _TracingAreaState extends State<_TracingArea> {
             painter: LetterTracePainter(
               character: widget.character,
               drawnStrokes: widget.drawnStrokes,
+              inkColor: widget.inkColor,
             ),
           );
         },
@@ -344,96 +480,12 @@ class _TracingAreaState extends State<_TracingArea> {
   }
 }
 
-// ─── Reusable widgets ────────────────────────────────────────────────────────
-
-class _CloseButton extends StatelessWidget {
-  final VoidCallback onPressed;
-  const _CloseButton({required this.onPressed});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onPressed,
-      child: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: const Color(0xFFE74C3C),
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.25),
-              blurRadius: 6,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: const Icon(Icons.close_rounded, color: Colors.white, size: 26),
-      ),
-    );
-  }
-}
-
-class _ScoreCard extends StatelessWidget {
-  final int score;
-  final AnimationController pulse;
-
-  const _ScoreCard({required this.score, required this.pulse});
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: pulse,
-      builder: (context, child) {
-        final scale = 1.0 + pulse.value * 0.15;
-        return Transform.scale(scale: scale, child: child);
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFF3CD),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.15),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Score',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF7D5A00),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              '$score',
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF5D4037),
-              ),
-            ),
-            const SizedBox(width: 6),
-            const Icon(Icons.star_rounded, color: Color(0xFFFFD700), size: 26),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Completion dialog ────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// Completion dialog
+// ---------------------------------------------------------------------------
 
 class _CompletionDialog extends StatefulWidget {
-  final OdiaLetter letter;
+  final Letter letter;
   final VoidCallback onNext;
 
   const _CompletionDialog({required this.letter, required this.onNext});
@@ -460,10 +512,12 @@ class _CompletionDialogState extends State<_CompletionDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
       backgroundColor: Colors.white,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -475,12 +529,13 @@ class _CompletionDialogState extends State<_CompletionDialog> {
               ),
             ),
             const SizedBox(height: 12),
-            Text(
+            const Text(
               'Great Job!',
               style: TextStyle(
+                fontFamily: BhashaTextStyles.fontFamily,
                 fontSize: 30,
                 fontWeight: FontWeight.bold,
-                color: AppTheme.primary,
+                color: BhashaColors.trace,
               ),
             ),
             const SizedBox(height: 6),
@@ -491,23 +546,26 @@ class _CompletionDialogState extends State<_CompletionDialog> {
                 Text(
                   '1 Star',
                   style: TextStyle(
+                    fontFamily: BhashaTextStyles.fontFamily,
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFFFFD700),
                   ),
                 ),
                 SizedBox(width: 4),
-                Icon(Icons.star_rounded, color: Color(0xFFFFD700), size: 28),
+                Icon(Icons.star_rounded,
+                    color: Color(0xFFFFD700), size: 28),
               ],
             ),
             const SizedBox(height: 20),
             Text(
-              widget.letter.character,
-              style: AppTheme.odiaLetterStyle(size: 52),
+              widget.letter.unicode,
+              style: const TextStyle(fontSize: 52, height: 1.0),
             ),
             Text(
-              widget.letter.name,
+              widget.letter.romanized,
               style: const TextStyle(
+                fontFamily: BhashaTextStyles.fontFamily,
                 fontSize: 16,
                 color: Color(0xFF888888),
                 fontWeight: FontWeight.w600,
@@ -518,18 +576,20 @@ class _CompletionDialogState extends State<_CompletionDialog> {
               width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
-                  foregroundColor: Colors.white,
+                  backgroundColor: BhashaColors.trace,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  elevation: 4,
                 ),
                 onPressed: widget.onNext,
                 child: const Text(
                   'Next',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontFamily: BhashaTextStyles.fontFamily,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),

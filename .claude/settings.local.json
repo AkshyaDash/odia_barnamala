@@ -16,7 +16,18 @@
       "PowerShell(flutter build *)",
       "Bash(/c/Users/Akshya/flutter/bin/flutter analyze *)",
       "Bash(grep -v \"^$\")",
-      "Bash(/c/Users/Akshya/flutter/bin/flutter build *)"
+      "Bash(/c/Users/Akshya/flutter/bin/flutter build *)",
+      "Bash(where:*)",
+      "Bash(cmd.exe /c \"where flutter\")",
+      "Bash(\"C:/Users/Akshya/flutter/bin/flutter\" pub get)",
+      "Bash(\"C:/Users/Akshya/flutter/bin/flutter\" analyze)",
+      "Bash(grep -v \"lib\\\\\\\\\\\\\\\\screens\\\\\\\\\\\\\\\\home_screen\\\\|lib\\\\\\\\\\\\\\\\screens\\\\\\\\\\\\\\\\letter_trace\\\\|lib\\\\\\\\\\\\\\\\screens\\\\\\\\\\\\\\\\rewards\\\\|lib\\\\\\\\\\\\\\\\theme\\\\\\\\\\\\\\\\app_theme\\\\|lib\\\\\\\\\\\\\\\\widgets\\\\\\\\\")",
+      "Bash(flutter build *)",
+      "Bash(flutter run *)",
+      "Bash(flutter --version)",
+      "Bash(adb logcat *)",
+      "Bash(\"/c/Users/Akshya/AppData/Local/Android/Sdk/platform-tools/adb.exe\" logcat *)",
+      "Bash(/c/Users/Akshya/AppData/Local/Android/Sdk/platform-tools/adb.exe shell *)"
     ]
   }
 }

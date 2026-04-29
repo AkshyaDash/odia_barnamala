@@ -11,7 +11,7 @@ class AppTheme {
         scaffoldBackgroundColor: background,
         colorScheme: ColorScheme.fromSeed(
           seedColor: primary,
-          background: background,
+          surface: background,
         ),
         useMaterial3: true,
       );
