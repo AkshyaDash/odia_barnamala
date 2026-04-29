@@ -61,6 +61,7 @@ class BhashaColors {
   static const Color langMarathi = Color(0xFFF5FFF0);
   static const Color langUrdu = Color(0xFFF0F5FF);
   static const Color langAssamese = Color(0xFFFFF8F5);
+  static const Color langEnglish  = Color(0xFFE6F0FF);
 }
 
 // -----------------------------------------------------------------------------

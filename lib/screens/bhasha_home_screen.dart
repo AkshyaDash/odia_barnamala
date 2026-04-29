@@ -129,6 +129,7 @@ class _HeaderSection extends StatelessWidget {
 
   static const _languageData = <Map<String, String>>[
     {'code': 'or', 'name': 'Odia', 'script': 'ଓ'},
+    {'code': 'en', 'name': 'English', 'script': 'A'},
     {'code': 'hi', 'name': 'Hindi', 'script': 'ह'},
     {'code': 'ta', 'name': 'Tamil', 'script': 'அ'},
     {'code': 'te', 'name': 'Telugu', 'script': 'అ'},
@@ -155,6 +156,7 @@ class _HeaderSection extends StatelessWidget {
     'mr': BhashaColors.langMarathi,
     'ur': BhashaColors.langUrdu,
     'as': BhashaColors.langAssamese,
+    'en': BhashaColors.langEnglish,
   };
 
   @override

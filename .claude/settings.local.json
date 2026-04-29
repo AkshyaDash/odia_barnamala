@@ -27,7 +27,9 @@
       "Bash(flutter --version)",
       "Bash(adb logcat *)",
       "Bash(\"/c/Users/Akshya/AppData/Local/Android/Sdk/platform-tools/adb.exe\" logcat *)",
-      "Bash(/c/Users/Akshya/AppData/Local/Android/Sdk/platform-tools/adb.exe shell *)"
+      "Bash(/c/Users/Akshya/AppData/Local/Android/Sdk/platform-tools/adb.exe shell *)",
+      "Bash(python generate_audio.py)",
+      "Bash(pip install *)"
     ]
   }
 }

@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """
-Generate Odia barnamala audio files using edge-tts with Hindi voice.
+Generate audio files for Bhasha Kids app using edge-tts.
 
-Odia and Hindi share the same Sanskrit-based phonetic system, so Hindi TTS
-(hi-IN-SwaraNeural) pronounces barnamala letters identically to Odia.
-We pass the Devanagari equivalent of each Odia letter for correct pronunciation.
+Odia:    hi-IN-SwaraNeural  — Hindi voice pronounces barnamala identically.
+English: en-US-AriaNeural   — Natural female US-English voice.
 
 Requirements:
     pip install edge-tts
@@ -18,10 +17,15 @@ import os
 import edge_tts
 
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "assets", "audio")
-VOICE = "hi-IN-SwaraNeural"  # Natural female Hindi voice
 
-# Maps filename -> Hindi Devanagari equivalent (same sounds as Odia barnamala)
-AUDIO_MAP = {
+# Each entry: (filename_stem, text_to_speak, voice)
+AUDIO_ENTRIES = []
+
+# ---------------------------------------------------------------------------
+# Odia — hi-IN-SwaraNeural
+# ---------------------------------------------------------------------------
+_ODIA_VOICE = "hi-IN-SwaraNeural"
+_ODIA_MAP = {
     # Vowels
     "vowel_a":   "अ",
     "vowel_aa":  "आ",
@@ -76,15 +80,115 @@ AUDIO_MAP = {
     "consonant_gya":  "ज्ञ",
 }
 
+AUDIO_ENTRIES += [(name, text, _ODIA_VOICE) for name, text in _ODIA_MAP.items()]
+
+# ---------------------------------------------------------------------------
+# English — en-US-AriaNeural
+# ---------------------------------------------------------------------------
+_EN_VOICE = "en-US-AriaNeural"
+_EN_MAP = {
+    "letter_a": "A",
+    "letter_b": "B",
+    "letter_c": "C",
+    "letter_d": "D",
+    "letter_e": "E",
+    "letter_f": "F",
+    "letter_g": "G",
+    "letter_h": "H",
+    "letter_i": "I",
+    "letter_j": "J",
+    "letter_k": "K",
+    "letter_l": "L",
+    "letter_m": "M",
+    "letter_n": "N",
+    "letter_o": "O",
+    "letter_p": "P",
+    "letter_q": "Q",
+    "letter_r": "R",
+    "letter_s": "S",
+    "letter_t": "T",
+    "letter_u": "U",
+    "letter_v": "V",
+    "letter_w": "W",
+    "letter_x": "X",
+    "letter_y": "Y",
+    "letter_z": "Z",
+}
+
+AUDIO_ENTRIES += [(name, text, _EN_VOICE) for name, text in _EN_MAP.items()]
+
+# ---------------------------------------------------------------------------
+# Hindi — hi-IN-SwaraNeural
+# ---------------------------------------------------------------------------
+_HI_VOICE = "hi-IN-SwaraNeural"
+_HI_MAP = {
+    # Vowels
+    "hi_vowel_a":   "अ",
+    "hi_vowel_aa":  "आ",
+    "hi_vowel_i":   "इ",
+    "hi_vowel_ii":  "ई",
+    "hi_vowel_u":   "उ",
+    "hi_vowel_uu":  "ऊ",
+    "hi_vowel_ri":  "ऋ",
+    "hi_vowel_e":   "ए",
+    "hi_vowel_ai":  "ऐ",
+    "hi_vowel_o":   "ओ",
+    "hi_vowel_au":  "औ",
+    "hi_vowel_am":  "अं",
+    "hi_vowel_ah":  "अः",
+    # Consonants
+    "hi_consonant_ka":   "क",
+    "hi_consonant_kha":  "ख",
+    "hi_consonant_ga":   "ग",
+    "hi_consonant_gha":  "घ",
+    "hi_consonant_nga":  "ङ",
+    "hi_consonant_cha":  "च",
+    "hi_consonant_chha": "छ",
+    "hi_consonant_ja":   "ज",
+    "hi_consonant_jha":  "झ",
+    "hi_consonant_nya":  "ञ",
+    "hi_consonant_ta":   "ट",
+    "hi_consonant_tha":  "ठ",
+    "hi_consonant_da":   "ड",
+    "hi_consonant_dha":  "ढ",
+    "hi_consonant_na":   "ण",
+    "hi_consonant_ta2":  "त",
+    "hi_consonant_tha2": "थ",
+    "hi_consonant_da2":  "द",
+    "hi_consonant_dha2": "ध",
+    "hi_consonant_na2":  "न",
+    "hi_consonant_pa":   "प",
+    "hi_consonant_pha":  "फ",
+    "hi_consonant_ba":   "ब",
+    "hi_consonant_bha":  "भ",
+    "hi_consonant_ma":   "म",
+    "hi_consonant_ya":   "य",
+    "hi_consonant_ra":   "र",
+    "hi_consonant_la":   "ल",
+    "hi_consonant_va":   "व",
+    "hi_consonant_sha":  "श",
+    "hi_consonant_ssa":  "ष",
+    "hi_consonant_sa":   "स",
+    "hi_consonant_ha":   "ह",
+    "hi_consonant_ksha": "क्ष",
+    "hi_consonant_tra":  "त्र",
+    "hi_consonant_gya":  "ज्ञ",
+}
+
+AUDIO_ENTRIES += [(name, text, _HI_VOICE) for name, text in _HI_MAP.items()]
+
 
 async def generate_all():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
-    total = len(AUDIO_MAP)
-    for i, (name, text) in enumerate(AUDIO_MAP.items(), 1):
+    total = len(AUDIO_ENTRIES)
+    for i, (name, text, voice) in enumerate(AUDIO_ENTRIES, 1):
         out_path = os.path.join(OUTPUT_DIR, f"{name}.mp3")
+        if os.path.exists(out_path):
+            print(f"[{i}/{total}] {name}.mp3  (skipped — already exists)")
+            continue
         print(f"[{i}/{total}] {name}.mp3")
         try:
-            communicate = edge_tts.Communicate(text, VOICE)
+            communicate = edge_tts.Communicate(text, voice)
             await communicate.save(out_path)
         except Exception as e:
             print(f"  ERROR: {e}")

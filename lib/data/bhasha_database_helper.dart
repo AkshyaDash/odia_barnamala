@@ -302,11 +302,37 @@ class DatabaseHelper {
   Future<void> seedDatabase() async {
     final db = await database;
 
-    // Idempotency guard
-    final existing = await db.query('languages', limit: 1);
-    if (existing.isNotEmpty) return;
+    // Per-language idempotency: seed each language only if absent.
+    final odiaExists = await db.query('languages',
+        where: 'code = ?', whereArgs: ['or'], limit: 1);
+    if (odiaExists.isEmpty) {
+      await _seedOdia(db);
+    }
 
-    // Seed Odia language
+    final englishExists = await db.query('languages',
+        where: 'code = ?', whereArgs: ['en'], limit: 1);
+    if (englishExists.isEmpty) {
+      await _seedEnglish(db);
+    }
+
+    final hindiExists = await db.query('languages',
+        where: 'code = ?', whereArgs: ['hi'], limit: 1);
+    if (hindiExists.isEmpty) {
+      await _seedHindi(db);
+    }
+
+    final streakExists = await db.query('streak', limit: 1);
+    if (streakExists.isEmpty) {
+      final today = DateTime.now().toIso8601String().substring(0, 10);
+      await db.insert('streak', {
+        'last_date': today,
+        'current': 0,
+        'longest': 0,
+      });
+    }
+  }
+
+  Future<void> _seedOdia(Database db) async {
     final odiaId = await db.insert('languages', {
       'code': 'or',
       'name': 'Odia',
@@ -314,7 +340,6 @@ class DatabaseHelper {
       'total_letters': 49,
     });
 
-    // Seed Odia letters (13 vowels + 36 consonants)
     const odiaLetters = _odiaLetterDefs;
     for (int i = 0; i < odiaLetters.length; i++) {
       final def = odiaLetters[i];
@@ -327,16 +352,397 @@ class DatabaseHelper {
       });
     }
 
-    // Seed word examples for Odia vowels
     await _seedWordExamples(db);
+  }
 
-    // Seed initial streak row
-    final today = DateTime.now().toIso8601String().substring(0, 10);
-    await db.insert('streak', {
-      'last_date': today,
-      'current': 0,
-      'longest': 0,
+  Future<void> _seedEnglish(Database db) async {
+    final langId = await db.insert('languages', {
+      'code': 'en',
+      'name': 'English',
+      'script': 'A',
+      'total_letters': 26,
     });
+
+    const letters = _englishLetterDefs;
+    for (int i = 0; i < letters.length; i++) {
+      final def = letters[i];
+      await db.insert('letters', {
+        'lang_id': langId,
+        'unicode': def['unicode'],
+        'romanized': def['romanized'],
+        'audio_file': 'assets/audio/${def['audio']}',
+        'sort_order': i + 1,
+      });
+    }
+
+    await _seedEnglishWordExamples(db);
+  }
+
+  Future<void> _seedEnglishWordExamples(Database db) async {
+    final letters = await db.query('letters',
+        where: "lang_id = (SELECT id FROM languages WHERE code = 'en')",
+        orderBy: 'sort_order');
+
+    const wordData = <String, List<Map<String, String>>>{
+      'A': [
+        {'script': 'Apple',     'roman': 'Apple',     'english': 'A red fruit'},
+        {'script': 'Ant',       'roman': 'Ant',       'english': 'A small insect'},
+      ],
+      'E': [
+        {'script': 'Elephant',  'roman': 'Elephant',  'english': 'A large animal'},
+        {'script': 'Egg',       'roman': 'Egg',       'english': 'Laid by a bird'},
+      ],
+      'I': [
+        {'script': 'Igloo',     'roman': 'Igloo',     'english': 'An ice house'},
+        {'script': 'Ink',       'roman': 'Ink',       'english': 'Used for writing'},
+      ],
+      'O': [
+        {'script': 'Orange',    'roman': 'Orange',    'english': 'A citrus fruit'},
+        {'script': 'Owl',       'roman': 'Owl',       'english': 'A night bird'},
+      ],
+      'U': [
+        {'script': 'Umbrella',  'roman': 'Umbrella',  'english': 'Keeps off rain'},
+        {'script': 'Uncle',     'roman': 'Uncle',     'english': 'A family member'},
+      ],
+      'B': [
+        {'script': 'Ball',      'roman': 'Ball',      'english': 'A round toy'},
+        {'script': 'Banana',    'roman': 'Banana',    'english': 'A yellow fruit'},
+      ],
+      'C': [
+        {'script': 'Cat',       'roman': 'Cat',       'english': 'A pet animal'},
+        {'script': 'Cow',       'roman': 'Cow',       'english': 'Gives milk'},
+      ],
+      'D': [
+        {'script': 'Dog',       'roman': 'Dog',       'english': 'A loyal pet'},
+        {'script': 'Duck',      'roman': 'Duck',      'english': 'A water bird'},
+      ],
+      'F': [
+        {'script': 'Fish',      'roman': 'Fish',      'english': 'Lives in water'},
+        {'script': 'Frog',      'roman': 'Frog',      'english': 'Jumps and croaks'},
+      ],
+      'G': [
+        {'script': 'Goat',      'roman': 'Goat',      'english': 'A farm animal'},
+        {'script': 'Grapes',    'roman': 'Grapes',    'english': 'A purple fruit'},
+      ],
+      'H': [
+        {'script': 'Hat',       'roman': 'Hat',       'english': 'Worn on head'},
+        {'script': 'Horse',     'roman': 'Horse',     'english': 'A fast animal'},
+      ],
+      'J': [
+        {'script': 'Jug',       'roman': 'Jug',       'english': 'Holds water'},
+        {'script': 'Jar',       'roman': 'Jar',       'english': 'A glass container'},
+      ],
+      'K': [
+        {'script': 'Kite',      'roman': 'Kite',      'english': 'Flies in the sky'},
+        {'script': 'King',      'roman': 'King',      'english': 'Rules a kingdom'},
+      ],
+      'L': [
+        {'script': 'Lion',      'roman': 'Lion',      'english': 'King of jungle'},
+        {'script': 'Leaf',      'roman': 'Leaf',      'english': 'Part of a plant'},
+      ],
+      'M': [
+        {'script': 'Mango',     'roman': 'Mango',     'english': 'A sweet fruit'},
+        {'script': 'Moon',      'roman': 'Moon',      'english': 'Shines at night'},
+      ],
+      'N': [
+        {'script': 'Nest',      'roman': 'Nest',      'english': 'A bird\'s home'},
+        {'script': 'Nose',      'roman': 'Nose',      'english': 'Used to smell'},
+      ],
+      'P': [
+        {'script': 'Parrot',    'roman': 'Parrot',    'english': 'A colourful bird'},
+        {'script': 'Pot',       'roman': 'Pot',       'english': 'Used for cooking'},
+      ],
+      'Q': [
+        {'script': 'Queen',     'roman': 'Queen',     'english': 'Rules a kingdom'},
+        {'script': 'Quill',     'roman': 'Quill',     'english': 'A feather pen'},
+      ],
+      'R': [
+        {'script': 'Rabbit',    'roman': 'Rabbit',    'english': 'A furry animal'},
+        {'script': 'Rose',      'roman': 'Rose',      'english': 'A beautiful flower'},
+      ],
+      'S': [
+        {'script': 'Sun',       'roman': 'Sun',       'english': 'Gives light and heat'},
+        {'script': 'Star',      'roman': 'Star',      'english': 'Shines in the sky'},
+      ],
+      'T': [
+        {'script': 'Tiger',     'roman': 'Tiger',     'english': 'A striped big cat'},
+        {'script': 'Tree',      'roman': 'Tree',      'english': 'Has leaves and roots'},
+      ],
+      'V': [
+        {'script': 'Van',       'roman': 'Van',       'english': 'A large vehicle'},
+        {'script': 'Vase',      'roman': 'Vase',      'english': 'Holds flowers'},
+      ],
+      'W': [
+        {'script': 'Water',     'roman': 'Water',     'english': 'We drink it'},
+        {'script': 'Wolf',      'roman': 'Wolf',      'english': 'A wild animal'},
+      ],
+      'X': [
+        {'script': 'Xylophone', 'roman': 'Xylophone', 'english': 'A musical instrument'},
+      ],
+      'Y': [
+        {'script': 'Yak',       'roman': 'Yak',       'english': 'A mountain animal'},
+        {'script': 'Yarn',      'roman': 'Yarn',      'english': 'A thread for knitting'},
+      ],
+      'Z': [
+        {'script': 'Zebra',     'roman': 'Zebra',     'english': 'A striped animal'},
+        {'script': 'Zoo',       'roman': 'Zoo',       'english': 'Where animals live'},
+      ],
+    };
+
+    for (final letter in letters) {
+      final unicode = letter['unicode'] as String;
+      final words = wordData[unicode];
+      if (words == null) continue;
+
+      for (final word in words) {
+        await db.insert('word_examples', {
+          'letter_id': letter['id'],
+          'word_script': word['script'],
+          'word_roman': word['roman'],
+          'word_english': word['english'],
+          'image_path': null,
+          'audio_path': null,
+        });
+      }
+    }
+  }
+
+  Future<void> _seedHindi(Database db) async {
+    final langId = await db.insert('languages', {
+      'code': 'hi',
+      'name': 'Hindi',
+      'script': 'ह',
+      'total_letters': 49,
+    });
+
+    const letters = _hindiLetterDefs;
+    for (int i = 0; i < letters.length; i++) {
+      final def = letters[i];
+      await db.insert('letters', {
+        'lang_id': langId,
+        'unicode': def['unicode'],
+        'romanized': def['romanized'],
+        'audio_file': 'assets/audio/${def['audio']}',
+        'sort_order': i + 1,
+      });
+    }
+
+    await _seedHindiWordExamples(db);
+  }
+
+  Future<void> _seedHindiWordExamples(Database db) async {
+    final letters = await db.query('letters',
+        where: "lang_id = (SELECT id FROM languages WHERE code = 'hi')",
+        orderBy: 'sort_order');
+
+    const wordData = <String, List<Map<String, String>>>{
+      'अ': [
+        {'script': 'अनार',  'roman': 'anaar',  'english': 'Pomegranate'},
+        {'script': 'अजगर', 'roman': 'ajgar',  'english': 'Python snake'},
+      ],
+      'आ': [
+        {'script': 'आम',   'roman': 'aam',    'english': 'Mango'},
+        {'script': 'आँख',  'roman': 'aankh',  'english': 'Eye'},
+      ],
+      'इ': [
+        {'script': 'इमली', 'roman': 'imli',   'english': 'Tamarind'},
+        {'script': 'इनाम', 'roman': 'inaam',  'english': 'Prize'},
+      ],
+      'ई': [
+        {'script': 'ईख',  'roman': 'eekh',   'english': 'Sugarcane'},
+        {'script': 'ईद',  'roman': 'eed',    'english': 'A festival'},
+      ],
+      'उ': [
+        {'script': 'उल्लू',   'roman': 'ullu',   'english': 'Owl'},
+        {'script': 'उँगली',  'roman': 'ungli',  'english': 'Finger'},
+      ],
+      'ऊ': [
+        {'script': 'ऊन',  'roman': 'oon',    'english': 'Wool'},
+        {'script': 'ऊँट', 'roman': 'oont',   'english': 'Camel'},
+      ],
+      'ऋ': [
+        {'script': 'ऋषि', 'roman': 'rishi',  'english': 'Sage'},
+        {'script': 'ऋतु', 'roman': 'ritu',   'english': 'Season'},
+      ],
+      'ए': [
+        {'script': 'एक',    'roman': 'ek',     'english': 'One'},
+        {'script': 'एड़ी',  'roman': 'edhi',   'english': 'Heel'},
+      ],
+      'ऐ': [
+        {'script': 'ऐनक',  'roman': 'ainak',  'english': 'Spectacles'},
+      ],
+      'ओ': [
+        {'script': 'ओस',   'roman': 'os',     'english': 'Dew'},
+        {'script': 'ओखल', 'roman': 'okhal',  'english': 'Mortar'},
+      ],
+      'औ': [
+        {'script': 'औरत',  'roman': 'aurat',  'english': 'Woman'},
+        {'script': 'औज़ार', 'roman': 'auzaar', 'english': 'Tool'},
+      ],
+      'अं': [
+        {'script': 'अंगूर', 'roman': 'angoor', 'english': 'Grapes'},
+      ],
+      'अः': [
+        {'script': 'अः',   'roman': 'ah',     'english': 'Visarga mark'},
+      ],
+      'क': [
+        {'script': 'कमल',  'roman': 'kamal',  'english': 'Lotus'},
+        {'script': 'कबूतर', 'roman': 'kabutar', 'english': 'Pigeon'},
+      ],
+      'ख': [
+        {'script': 'खरगोश', 'roman': 'khargosh', 'english': 'Rabbit'},
+        {'script': 'खाना',  'roman': 'khaana',   'english': 'Food'},
+      ],
+      'ग': [
+        {'script': 'गाय',  'roman': 'gaay',   'english': 'Cow'},
+        {'script': 'गुलाब', 'roman': 'gulaab', 'english': 'Rose'},
+      ],
+      'घ': [
+        {'script': 'घर',   'roman': 'ghar',   'english': 'House'},
+        {'script': 'घड़ी', 'roman': 'ghadi',  'english': 'Watch'},
+      ],
+      'ङ': [
+        {'script': 'पंग',  'roman': 'pang',   'english': 'Pang'},
+      ],
+      'च': [
+        {'script': 'चाँद', 'roman': 'chaand', 'english': 'Moon'},
+        {'script': 'चूहा', 'roman': 'chooha', 'english': 'Mouse'},
+      ],
+      'छ': [
+        {'script': 'छाता', 'roman': 'chhaata', 'english': 'Umbrella'},
+        {'script': 'छत',   'roman': 'chhat',   'english': 'Roof'},
+      ],
+      'ज': [
+        {'script': 'जल',   'roman': 'jal',    'english': 'Water'},
+        {'script': 'जहाज', 'roman': 'jahaaj', 'english': 'Ship'},
+      ],
+      'झ': [
+        {'script': 'झरना', 'roman': 'jharna', 'english': 'Waterfall'},
+        {'script': 'झंडा', 'roman': 'jhanda', 'english': 'Flag'},
+      ],
+      'ञ': [
+        {'script': 'ज्ञान', 'roman': 'gyaan',  'english': 'Knowledge'},
+      ],
+      'ट': [
+        {'script': 'टमाटर', 'roman': 'tamatar', 'english': 'Tomato'},
+        {'script': 'टोपी',  'roman': 'topi',    'english': 'Cap'},
+      ],
+      'ठ': [
+        {'script': 'ठंड',  'roman': 'thand',  'english': 'Cold weather'},
+        {'script': 'ठेला', 'roman': 'thela',  'english': 'Cart'},
+      ],
+      'ड': [
+        {'script': 'डमरू', 'roman': 'damru',  'english': 'Drum'},
+        {'script': 'डाल',  'roman': 'daal',   'english': 'Branch'},
+      ],
+      'ढ': [
+        {'script': 'ढोल',  'roman': 'dhol',   'english': 'Drum'},
+        {'script': 'ढक्कन', 'roman': 'dhakkan', 'english': 'Lid'},
+      ],
+      'ण': [
+        {'script': 'गणेश', 'roman': 'ganesh', 'english': 'Lord Ganesha'},
+      ],
+      'त': [
+        {'script': 'तोता', 'roman': 'tota',   'english': 'Parrot'},
+        {'script': 'तारा', 'roman': 'tara',   'english': 'Star'},
+      ],
+      'थ': [
+        {'script': 'थैला', 'roman': 'thaila', 'english': 'Bag'},
+        {'script': 'थाली', 'roman': 'thaali', 'english': 'Plate'},
+      ],
+      'द': [
+        {'script': 'दरवाज़ा', 'roman': 'darwaza', 'english': 'Door'},
+        {'script': 'दूध',    'roman': 'doodh',   'english': 'Milk'},
+      ],
+      'ध': [
+        {'script': 'धनुष', 'roman': 'dhanush', 'english': 'Bow'},
+        {'script': 'धरती', 'roman': 'dharti',  'english': 'Earth'},
+      ],
+      'न': [
+        {'script': 'नदी',  'roman': 'nadi',   'english': 'River'},
+        {'script': 'नाव',  'roman': 'naav',   'english': 'Boat'},
+      ],
+      'प': [
+        {'script': 'पानी', 'roman': 'paani',  'english': 'Water'},
+        {'script': 'पहाड़', 'roman': 'pahaad', 'english': 'Mountain'},
+      ],
+      'फ': [
+        {'script': 'फूल',  'roman': 'phool',  'english': 'Flower'},
+        {'script': 'फल',   'roman': 'phal',   'english': 'Fruit'},
+      ],
+      'ब': [
+        {'script': 'बकरी', 'roman': 'bakri',  'english': 'Goat'},
+        {'script': 'बादल', 'roman': 'baadal', 'english': 'Cloud'},
+      ],
+      'भ': [
+        {'script': 'भालू', 'roman': 'bhaalu', 'english': 'Bear'},
+        {'script': 'भाई',  'roman': 'bhaai',  'english': 'Brother'},
+      ],
+      'म': [
+        {'script': 'मछली', 'roman': 'machhli', 'english': 'Fish'},
+        {'script': 'माँ',  'roman': 'maa',     'english': 'Mother'},
+      ],
+      'य': [
+        {'script': 'यात्रा', 'roman': 'yaatra', 'english': 'Journey'},
+        {'script': 'यंत्र',  'roman': 'yantra', 'english': 'Machine'},
+      ],
+      'र': [
+        {'script': 'रोटी', 'roman': 'roti',   'english': 'Bread'},
+        {'script': 'राजा', 'roman': 'raja',   'english': 'King'},
+      ],
+      'ल': [
+        {'script': 'लड्डू', 'roman': 'laddoo', 'english': 'Sweet ball'},
+        {'script': 'लोमड़ी', 'roman': 'lomdi',  'english': 'Fox'},
+      ],
+      'व': [
+        {'script': 'वर्षा', 'roman': 'varsha', 'english': 'Rain'},
+        {'script': 'वायु',  'roman': 'vaayu',  'english': 'Wind'},
+      ],
+      'श': [
+        {'script': 'शेर',   'roman': 'sher',   'english': 'Lion'},
+        {'script': 'शहद',   'roman': 'shahad', 'english': 'Honey'},
+      ],
+      'ष': [
+        {'script': 'षट्कोण', 'roman': 'shatkona', 'english': 'Hexagon'},
+      ],
+      'स': [
+        {'script': 'सूरज', 'roman': 'sooraj', 'english': 'Sun'},
+        {'script': 'सेब',  'roman': 'seb',    'english': 'Apple'},
+      ],
+      'ह': [
+        {'script': 'हाथी', 'roman': 'haathi', 'english': 'Elephant'},
+        {'script': 'हिरण', 'roman': 'hiran',  'english': 'Deer'},
+      ],
+      'क्ष': [
+        {'script': 'क्षमा',  'roman': 'kshama',   'english': 'Forgiveness'},
+        {'script': 'क्षत्रिय', 'roman': 'kshatriya', 'english': 'Warrior'},
+      ],
+      'त्र': [
+        {'script': 'त्रिभुज', 'roman': 'tribhuj', 'english': 'Triangle'},
+        {'script': 'त्रिशूल', 'roman': 'trishul', 'english': 'Trident'},
+      ],
+      'ज्ञ': [
+        {'script': 'ज्ञान',  'roman': 'gyaan',  'english': 'Knowledge'},
+        {'script': 'ज्ञानी', 'roman': 'gyaani', 'english': 'Wise person'},
+      ],
+    };
+
+    for (final letter in letters) {
+      final unicode = letter['unicode'] as String;
+      final words = wordData[unicode];
+      if (words == null) continue;
+
+      for (final word in words) {
+        await db.insert('word_examples', {
+          'letter_id': letter['id'],
+          'word_script': word['script'],
+          'word_roman': word['roman'],
+          'word_english': word['english'],
+          'image_path': null,
+          'audio_path': null,
+        });
+      }
+    }
   }
 
   Future<void> _seedWordExamples(Database db) async {
@@ -487,5 +893,98 @@ class DatabaseHelper {
     {'unicode': 'ଳ', 'romanized': 'Lla', 'audio': 'consonant_lla.mp3'},
     {'unicode': 'କ୍ଷ', 'romanized': 'Ksha', 'audio': 'consonant_ksha.mp3'},
     {'unicode': 'ଜ୍ଞ', 'romanized': 'Gya', 'audio': 'consonant_gya.mp3'},
+  ];
+
+  // ---------------------------------------------------------------------------
+  // Hindi letter definitions  (Devanagari — 13 vowels + 36 consonants = 49)
+  // ---------------------------------------------------------------------------
+
+  static const List<Map<String, String>> _hindiLetterDefs = [
+    // Vowels (sort_order 1–13)
+    {'unicode': 'अ',  'romanized': 'A',    'audio': 'hi_vowel_a.mp3'},
+    {'unicode': 'आ',  'romanized': 'Aa',   'audio': 'hi_vowel_aa.mp3'},
+    {'unicode': 'इ',  'romanized': 'I',    'audio': 'hi_vowel_i.mp3'},
+    {'unicode': 'ई',  'romanized': 'Ii',   'audio': 'hi_vowel_ii.mp3'},
+    {'unicode': 'उ',  'romanized': 'U',    'audio': 'hi_vowel_u.mp3'},
+    {'unicode': 'ऊ',  'romanized': 'Uu',   'audio': 'hi_vowel_uu.mp3'},
+    {'unicode': 'ऋ',  'romanized': 'Ri',   'audio': 'hi_vowel_ri.mp3'},
+    {'unicode': 'ए',  'romanized': 'E',    'audio': 'hi_vowel_e.mp3'},
+    {'unicode': 'ऐ',  'romanized': 'Ai',   'audio': 'hi_vowel_ai.mp3'},
+    {'unicode': 'ओ',  'romanized': 'O',    'audio': 'hi_vowel_o.mp3'},
+    {'unicode': 'औ',  'romanized': 'Au',   'audio': 'hi_vowel_au.mp3'},
+    {'unicode': 'अं', 'romanized': 'Am',   'audio': 'hi_vowel_am.mp3'},
+    {'unicode': 'अः', 'romanized': 'Ah',   'audio': 'hi_vowel_ah.mp3'},
+    // Consonants (sort_order 14–49)
+    {'unicode': 'क',   'romanized': 'Ka',   'audio': 'hi_consonant_ka.mp3'},
+    {'unicode': 'ख',   'romanized': 'Kha',  'audio': 'hi_consonant_kha.mp3'},
+    {'unicode': 'ग',   'romanized': 'Ga',   'audio': 'hi_consonant_ga.mp3'},
+    {'unicode': 'घ',   'romanized': 'Gha',  'audio': 'hi_consonant_gha.mp3'},
+    {'unicode': 'ङ',   'romanized': 'Nga',  'audio': 'hi_consonant_nga.mp3'},
+    {'unicode': 'च',   'romanized': 'Cha',  'audio': 'hi_consonant_cha.mp3'},
+    {'unicode': 'छ',   'romanized': 'Chha', 'audio': 'hi_consonant_chha.mp3'},
+    {'unicode': 'ज',   'romanized': 'Ja',   'audio': 'hi_consonant_ja.mp3'},
+    {'unicode': 'झ',   'romanized': 'Jha',  'audio': 'hi_consonant_jha.mp3'},
+    {'unicode': 'ञ',   'romanized': 'Nya',  'audio': 'hi_consonant_nya.mp3'},
+    {'unicode': 'ट',   'romanized': 'Ta',   'audio': 'hi_consonant_ta.mp3'},
+    {'unicode': 'ठ',   'romanized': 'Tha',  'audio': 'hi_consonant_tha.mp3'},
+    {'unicode': 'ड',   'romanized': 'Da',   'audio': 'hi_consonant_da.mp3'},
+    {'unicode': 'ढ',   'romanized': 'Dha',  'audio': 'hi_consonant_dha.mp3'},
+    {'unicode': 'ण',   'romanized': 'Na',   'audio': 'hi_consonant_na.mp3'},
+    {'unicode': 'त',   'romanized': 'Ta',   'audio': 'hi_consonant_ta2.mp3'},
+    {'unicode': 'थ',   'romanized': 'Tha',  'audio': 'hi_consonant_tha2.mp3'},
+    {'unicode': 'द',   'romanized': 'Da',   'audio': 'hi_consonant_da2.mp3'},
+    {'unicode': 'ध',   'romanized': 'Dha',  'audio': 'hi_consonant_dha2.mp3'},
+    {'unicode': 'न',   'romanized': 'Na',   'audio': 'hi_consonant_na2.mp3'},
+    {'unicode': 'प',   'romanized': 'Pa',   'audio': 'hi_consonant_pa.mp3'},
+    {'unicode': 'फ',   'romanized': 'Pha',  'audio': 'hi_consonant_pha.mp3'},
+    {'unicode': 'ब',   'romanized': 'Ba',   'audio': 'hi_consonant_ba.mp3'},
+    {'unicode': 'भ',   'romanized': 'Bha',  'audio': 'hi_consonant_bha.mp3'},
+    {'unicode': 'म',   'romanized': 'Ma',   'audio': 'hi_consonant_ma.mp3'},
+    {'unicode': 'य',   'romanized': 'Ya',   'audio': 'hi_consonant_ya.mp3'},
+    {'unicode': 'र',   'romanized': 'Ra',   'audio': 'hi_consonant_ra.mp3'},
+    {'unicode': 'ल',   'romanized': 'La',   'audio': 'hi_consonant_la.mp3'},
+    {'unicode': 'व',   'romanized': 'Va',   'audio': 'hi_consonant_va.mp3'},
+    {'unicode': 'श',   'romanized': 'Sha',  'audio': 'hi_consonant_sha.mp3'},
+    {'unicode': 'ष',   'romanized': 'Ssa',  'audio': 'hi_consonant_ssa.mp3'},
+    {'unicode': 'स',   'romanized': 'Sa',   'audio': 'hi_consonant_sa.mp3'},
+    {'unicode': 'ह',   'romanized': 'Ha',   'audio': 'hi_consonant_ha.mp3'},
+    {'unicode': 'क्ष', 'romanized': 'Ksha', 'audio': 'hi_consonant_ksha.mp3'},
+    {'unicode': 'त्र', 'romanized': 'Tra',  'audio': 'hi_consonant_tra.mp3'},
+    {'unicode': 'ज्ञ', 'romanized': 'Gya',  'audio': 'hi_consonant_gya.mp3'},
+  ];
+
+  // ---------------------------------------------------------------------------
+  // English letter definitions
+  // ---------------------------------------------------------------------------
+
+  static const List<Map<String, String>> _englishLetterDefs = [
+    // Vowels (sort_order 1–5)
+    {'unicode': 'A', 'romanized': 'A', 'audio': 'letter_a.mp3'},
+    {'unicode': 'E', 'romanized': 'E', 'audio': 'letter_e.mp3'},
+    {'unicode': 'I', 'romanized': 'I', 'audio': 'letter_i.mp3'},
+    {'unicode': 'O', 'romanized': 'O', 'audio': 'letter_o.mp3'},
+    {'unicode': 'U', 'romanized': 'U', 'audio': 'letter_u.mp3'},
+    // Consonants (sort_order 6–26)
+    {'unicode': 'B', 'romanized': 'B', 'audio': 'letter_b.mp3'},
+    {'unicode': 'C', 'romanized': 'C', 'audio': 'letter_c.mp3'},
+    {'unicode': 'D', 'romanized': 'D', 'audio': 'letter_d.mp3'},
+    {'unicode': 'F', 'romanized': 'F', 'audio': 'letter_f.mp3'},
+    {'unicode': 'G', 'romanized': 'G', 'audio': 'letter_g.mp3'},
+    {'unicode': 'H', 'romanized': 'H', 'audio': 'letter_h.mp3'},
+    {'unicode': 'J', 'romanized': 'J', 'audio': 'letter_j.mp3'},
+    {'unicode': 'K', 'romanized': 'K', 'audio': 'letter_k.mp3'},
+    {'unicode': 'L', 'romanized': 'L', 'audio': 'letter_l.mp3'},
+    {'unicode': 'M', 'romanized': 'M', 'audio': 'letter_m.mp3'},
+    {'unicode': 'N', 'romanized': 'N', 'audio': 'letter_n.mp3'},
+    {'unicode': 'P', 'romanized': 'P', 'audio': 'letter_p.mp3'},
+    {'unicode': 'Q', 'romanized': 'Q', 'audio': 'letter_q.mp3'},
+    {'unicode': 'R', 'romanized': 'R', 'audio': 'letter_r.mp3'},
+    {'unicode': 'S', 'romanized': 'S', 'audio': 'letter_s.mp3'},
+    {'unicode': 'T', 'romanized': 'T', 'audio': 'letter_t.mp3'},
+    {'unicode': 'V', 'romanized': 'V', 'audio': 'letter_v.mp3'},
+    {'unicode': 'W', 'romanized': 'W', 'audio': 'letter_w.mp3'},
+    {'unicode': 'X', 'romanized': 'X', 'audio': 'letter_x.mp3'},
+    {'unicode': 'Y', 'romanized': 'Y', 'audio': 'letter_y.mp3'},
+    {'unicode': 'Z', 'romanized': 'Z', 'audio': 'letter_z.mp3'},
   ];
 }
