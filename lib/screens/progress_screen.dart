@@ -17,6 +17,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
   List<_BadgeData> _badges = [];
   List<_RecentItem> _recentItems = [];
   bool _loaded = false;
+  String _childName = '';
 
   @override
   void initState() {
@@ -167,7 +168,13 @@ class _ProgressScreenState extends State<ProgressScreen> {
       );
     }).toList();
 
-    if (mounted) setState(() => _loaded = true);
+    final childName = prefs.getString('child_name') ?? '';
+    if (mounted) {
+      setState(() {
+        _loaded = true;
+        _childName = childName;
+      });
+    }
   }
 
   @override
@@ -232,7 +239,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Learner',
+                          _childName.isEmpty ? 'Learner' : _childName,
                           style: BhashaTextStyles.cardTitle.copyWith(
                             fontSize: 16,
                             color: BhashaColors.textPrimary,

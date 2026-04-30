@@ -98,7 +98,7 @@ class BhashaTextStyles {
   // other scripts fall back to system Noto fonts automatically.
   static const TextStyle letterChar = TextStyle(
     fontFamily: 'NotoSansOriya',
-    fontSize: 24,
+    fontSize: 36,
     height: 1.0,
   );
 
@@ -110,7 +110,7 @@ class BhashaTextStyles {
 
   static const TextStyle letterRoman = TextStyle(
     fontFamily: fontFamily,
-    fontSize: 9,
+    fontSize: 11,
     color: BhashaColors.textHint,
   );
 

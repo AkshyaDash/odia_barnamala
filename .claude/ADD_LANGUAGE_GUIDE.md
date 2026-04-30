@@ -64,6 +64,8 @@ For each letter (or at minimum each vowel), collect 1–2 example words:
 }
 ```
 
+> **Image tip:** The `english` field is used by [`lib/services/word_image_service.dart`](../lib/services/word_image_service.dart) to automatically fetch a Wikipedia thumbnail for each word. Choose clear, concrete English nouns — e.g. `"elephant"`, `"lotus"`, `"waterfall"`. Abstract or ambiguous words (e.g. `"god"`, `"sage"`) will produce poor images unless you add an override (see §1f below).
+
 ### 1c. Font
 - **Latin / Roman scripts** (English, French, etc.): No new font needed. System fonts cover these.
 - **Indic / CJK / other scripts**: Download the appropriate Noto font (e.g., `NotoSansDevanagari-Regular.ttf` for Hindi). Place it in `assets/fonts/`.
@@ -78,6 +80,24 @@ name:          Display name                  e.g. 'English', 'Hindi'
 script:        A single representative char  e.g. 'A', 'अ', 'த'
 total_letters: Total count of letters        e.g. 26 for English
 ```
+
+### 1f. Word image overrides
+
+When a word's English translation is too generic for a good Wikipedia image, add an entry to the `_searchOverrides` map in [`lib/services/word_image_service.dart`](../lib/services/word_image_service.dart):
+
+```dart
+static const Map<String, String> _searchOverrides = {
+  'god':  'Shiva',   // generic → specific Wikipedia article
+  'sage': 'Rishi',   // generic → Hindu sage (Rishi) article
+  // Add entries for any ambiguous words in your language:
+  // 'knowledge': 'Vedic knowledge',
+};
+```
+
+**Key:** the lowercase English value of `word_english` for the word in the DB.  
+**Value:** the Wikipedia article title to search instead.
+
+Results are cached in-memory for the session, so repeated lookups cost nothing. The fallback (if Wikipedia returns no thumbnail) is the word's script characters displayed in the image box — always safe to ship without an override.
 
 ---
 
@@ -286,36 +306,39 @@ Future<void> _seedEnglish(Database db) async {
 
 ### 5d. Create the word examples seeding method
 
-Follow the exact same pattern as `_seedWordExamples()`:
+Declare the word data as a **static const** so it can be shared with the migration helper (see Step 7). Query only your language's letters via the subquery:
 
 ```dart
+// Declared as static const — shared with _onUpgrade migration if needed
+static const Map<String, List<Map<String, String>>> _englishWordData = {
+  'A': [
+    {'script': 'Apple',  'roman': 'Apple',  'english': 'Apple'},
+    {'script': 'Ant',    'roman': 'Ant',    'english': 'Ant'},
+  ],
+  'B': [
+    {'script': 'Ball',   'roman': 'Ball',   'english': 'Ball'},
+    {'script': 'Banana', 'roman': 'Banana', 'english': 'Banana'},
+  ],
+  // ... one entry per letter minimum, 2 for common letters ...
+  // Choose concrete nouns for 'english' — they drive Wikipedia image lookup.
+};
+
 Future<void> _seedEnglishWordExamples(Database db) async {
-  final letters = await db.query('letters',
-      where: "lang_id = (SELECT id FROM languages WHERE code = 'en')",
-      orderBy: 'sort_order');
-
-  final wordData = <String, List<Map<String, String>>>{
-    'A': [
-      {'script': 'Apple',  'roman': 'Apple',  'english': 'A fruit'},
-      {'script': 'Ant',    'roman': 'Ant',    'english': 'An insect'},
-    ],
-    'B': [
-      {'script': 'Ball',   'roman': 'Ball',   'english': 'A round toy'},
-      {'script': 'Banana', 'roman': 'Banana', 'english': 'A fruit'},
-    ],
-    // ... one entry per letter minimum, 2 for vowels ...
-  };
-
+  final letters = await db.rawQuery('''
+    SELECT l.* FROM letters l
+    JOIN languages lang ON l.lang_id = lang.id
+    WHERE lang.code = 'en'
+    ORDER BY l.sort_order
+  ''');
   for (final letter in letters) {
     final unicode = letter['unicode'] as String;
-    final words = wordData[unicode];
+    final words = _englishWordData[unicode];
     if (words == null) continue;
-
     for (final word in words) {
       await db.insert('word_examples', {
         'letter_id': letter['id'],
         'word_script': word['script'],
-        'word_roman': word['roman'],
+        'word_roman':  word['roman'],
         'word_english': word['english'],
         'image_path': null,
         'audio_path': null,
@@ -359,12 +382,25 @@ Add a `getEnglishTracePaths(String unicode)` function that returns the path for 
 Open [lib/data/bhasha_database_helper.dart](../lib/data/bhasha_database_helper.dart) line 13:
 
 ```dart
-static const _databaseVersion = 1;
+static const _databaseVersion = 2;   // current version
 ```
 
-If the app has been installed on a real device before with `version: 1`, the `_onCreate` callback will NOT run again for existing installs. The new language seeding runs from `seedDatabase()` (called at startup), not from `_onCreate`, so this is fine — **no migration needed** for adding a language.
+The new language seeding runs from `seedDatabase()` (called at startup via per-language idempotency guards), **not** from `_onCreate` — so adding a new language does **not** require a version bump.
 
-Only increment `_databaseVersion` if you are changing the database SCHEMA (adding/removing columns or tables).
+Only bump `_databaseVersion` when you change the **schema** (add/remove columns or tables) or when you need to retroactively fix content in existing installs. If you do bump it, add a corresponding `_onUpgrade` branch:
+
+```dart
+Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+  if (oldVersion < 2) {
+    await _addMissingOdiaWords(db);   // existing — adds Odia consonant words
+  }
+  if (oldVersion < 3) {
+    // your migration here
+  }
+}
+```
+
+> **History:** version 1 → 2 was bumped to retroactively insert Odia consonant word examples that were missing from the original seed. The `_addMissingOdiaWords` migration only inserts rows for Odia letters that had zero word examples, so it is safe to run on any install.
 
 ---
 

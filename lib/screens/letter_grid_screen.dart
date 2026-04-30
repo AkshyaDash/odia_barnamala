@@ -116,6 +116,26 @@ class _LetterGridScreenState extends State<LetterGridScreen> {
     }
   }
 
+  String _vowelTabLabel(String code) {
+    const native = {
+      'or': 'ସ୍ୱର', 'hi': 'स्वर', 'mr': 'स्वर', 'bn': 'স্বর',
+      'gu': 'સ્વર', 'pa': 'ਸਵਰ', 'ta': 'உயிர்', 'te': 'అచ్చులు',
+      'kn': 'ಸ್ವರ', 'ml': 'സ്വരം',
+    };
+    final n = native[code];
+    return n != null ? '$n  Vowels' : 'Vowels';
+  }
+
+  String _consonantTabLabel(String code) {
+    const native = {
+      'or': 'ବ୍ୟଞ୍ଜନ', 'hi': 'व्यंजन', 'mr': 'व्यंजन', 'bn': 'ব্যঞ্জন',
+      'gu': 'વ્યંજન', 'pa': 'ਵਿਅੰਜਨ', 'ta': 'மெய்', 'te': 'హల్లులు',
+      'kn': 'ವ್ಯಂಜನ', 'ml': 'വ്യഞ്ജനം',
+    };
+    final n = native[code];
+    return n != null ? '$n  Consonants' : 'Consonants';
+  }
+
   @override
   Widget build(BuildContext context) {
     final learnedCount =
@@ -178,23 +198,23 @@ class _LetterGridScreenState extends State<LetterGridScreen> {
                         length: 2,
                         child: Column(
                           children: [
-                            const TabBar(
+                            TabBar(
                               indicatorColor: BhashaColors.primary,
                               labelColor: BhashaColors.primary,
                               unselectedLabelColor: BhashaColors.textHint,
-                              labelStyle: TextStyle(
+                              labelStyle: const TextStyle(
                                 fontFamily: BhashaTextStyles.fontFamily,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
                               ),
-                              unselectedLabelStyle: TextStyle(
+                              unselectedLabelStyle: const TextStyle(
                                 fontFamily: BhashaTextStyles.fontFamily,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
                               ),
                               tabs: [
-                                Tab(text: 'ସ୍ୱର  Vowels'),
-                                Tab(text: 'ବ୍ୟଞ୍ଜନ  Consonants'),
+                                Tab(text: _vowelTabLabel(widget.language.code)),
+                                Tab(text: _consonantTabLabel(widget.language.code)),
                               ],
                             ),
                             Expanded(
@@ -295,13 +315,13 @@ class _LetterGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final crossCount = MediaQuery.of(context).size.width > 600 ? 6 : 4;
+    final crossCount = MediaQuery.of(context).size.width > 600 ? 5 : 3;
 
     return GridView.builder(
       padding: const EdgeInsets.all(BhashaSpacing.md),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: crossCount,
-        childAspectRatio: 0.9,
+        childAspectRatio: 1.0,
         crossAxisSpacing: BhashaSpacing.sm,
         mainAxisSpacing: BhashaSpacing.sm,
       ),

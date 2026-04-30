@@ -6,6 +6,7 @@ import '../data/bhasha_database_helper.dart';
 import '../models/language.dart';
 import '../models/letter_new.dart';
 import '../models/word_example.dart';
+import '../services/word_image_service.dart';
 import '../theme/bhasha_design_system.dart';
 
 class WordExamplesScreen extends StatefulWidget {
@@ -286,9 +287,6 @@ class _LetterWordsPage extends StatelessWidget {
           ...words.map((word) => _WordCard(
                 word: word,
                 onPlay: () => onPlayWord(word),
-                langCode: langCode,
-                letterUnicode: letter.unicode,
-                wordIndex: words.indexOf(word),
               )),
         ],
       ),
@@ -296,30 +294,35 @@ class _LetterWordsPage extends StatelessWidget {
   }
 }
 
-class _WordCard extends StatelessWidget {
+class _WordCard extends StatefulWidget {
   final WordExample word;
   final VoidCallback onPlay;
-  final String langCode;
-  final String letterUnicode;
-  final int wordIndex;
 
   const _WordCard({
     required this.word,
     required this.onPlay,
-    required this.langCode,
-    required this.letterUnicode,
-    required this.wordIndex,
   });
+
+  @override
+  State<_WordCard> createState() => _WordCardState();
+}
+
+class _WordCardState extends State<_WordCard> {
+  late final Future<String?> _imageFuture;
 
   static const _emeraldLight = Color(0xFF6EE7B7);
   static const _emerald = Color(0xFF059669);
   static const _emeraldBg = Color(0xFFF0FFF4);
 
   @override
-  Widget build(BuildContext context) {
-    final imagePath = word.imagePath ??
-        'assets/images/word_examples/${langCode}_${letterUnicode}_$wordIndex.png';
+  void initState() {
+    super.initState();
+    _imageFuture =
+        WordImageService.instance.getImageUrl(widget.word.wordEnglish);
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
@@ -330,26 +333,63 @@ class _WordCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Image or fallback
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              color: _emeraldBg,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.asset(
-                imagePath,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Center(
-                  child: Text(
-                    word.wordScript,
-                    style: const TextStyle(fontSize: 48),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
+          // Image box — 100×100, memory-compressed to 200px on decode
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: SizedBox(
+              width: 100,
+              height: 100,
+              child: FutureBuilder<String?>(
+                future: _imageFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Container(
+                      color: _emeraldBg,
+                      child: const Center(
+                        child: SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: _emerald,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                  final url = snapshot.data;
+                  if (url != null) {
+                    return Image.network(
+                      url,
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit.cover,
+                      // Decode at 2× display size to cover HiDPI screens
+                      // while keeping memory use low (vs full-res decode).
+                      cacheWidth: 200,
+                      cacheHeight: 200,
+                      errorBuilder: (_, __, ___) =>
+                          _imageFallback(widget.word.wordScript),
+                      loadingBuilder: (_, child, progress) {
+                        if (progress == null) return child;
+                        return Container(
+                          color: _emeraldBg,
+                          child: const Center(
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: _emerald,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  }
+                  return _imageFallback(widget.word.wordScript);
+                },
               ),
             ),
           ),
@@ -359,17 +399,17 @@ class _WordCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  word.wordScript,
+                  widget.word.wordScript,
                   style: const TextStyle(fontSize: 24),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  word.wordRoman,
+                  widget.word.wordRoman,
                   style: BhashaTextStyles.bodySmall.copyWith(fontSize: 13),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  word.wordEnglish,
+                  widget.word.wordEnglish,
                   style: const TextStyle(
                     fontFamily: BhashaTextStyles.fontFamily,
                     fontSize: 13,
@@ -379,7 +419,7 @@ class _WordCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 GestureDetector(
-                  onTap: onPlay,
+                  onTap: widget.onPlay,
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -405,4 +445,15 @@ class _WordCard extends StatelessWidget {
       ),
     );
   }
+
+  Widget _imageFallback(String script) => Container(
+        color: _emeraldBg,
+        child: Center(
+          child: Text(
+            script,
+            style: const TextStyle(fontSize: 40),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
 }
