@@ -356,6 +356,12 @@ class DatabaseHelper {
       await _seedHindi(db);
     }
 
+    final tamilExists = await db.query('languages',
+        where: 'code = ?', whereArgs: ['ta'], limit: 1);
+    if (tamilExists.isEmpty) {
+      await _seedTamil(db);
+    }
+
     final streakExists = await db.query('streak', limit: 1);
     if (streakExists.isEmpty) {
       final today = DateTime.now().toIso8601String().substring(0, 10);
@@ -780,6 +786,161 @@ class DatabaseHelper {
     }
   }
 
+  Future<void> _seedTamil(Database db) async {
+    final langId = await db.insert('languages', {
+      'code': 'ta',
+      'name': 'Tamil',
+      'script': 'த',
+      'total_letters': 30,
+    });
+
+    const letters = _tamilLetterDefs;
+    for (int i = 0; i < letters.length; i++) {
+      final def = letters[i];
+      await db.insert('letters', {
+        'lang_id': langId,
+        'unicode': def['unicode'],
+        'romanized': def['romanized'],
+        'audio_file': 'assets/audio/${def['audio']}',
+        'sort_order': i + 1,
+      });
+    }
+
+    await _seedTamilWordExamples(db);
+  }
+
+  Future<void> _seedTamilWordExamples(Database db) async {
+    final letters = await db.query('letters',
+        where: "lang_id = (SELECT id FROM languages WHERE code = 'ta')",
+        orderBy: 'sort_order');
+
+    const wordData = <String, List<Map<String, String>>>{
+      'அ': [
+        {'script': 'அணில்',    'roman': 'anil',       'english': 'Squirrel'},
+        {'script': 'அம்மா',    'roman': 'amma',       'english': 'Mother'},
+      ],
+      'ஆ': [
+        {'script': 'ஆடு',      'roman': 'aadu',       'english': 'Goat'},
+        {'script': 'ஆமை',      'roman': 'aamai',      'english': 'Turtle'},
+      ],
+      'இ': [
+        {'script': 'இலை',      'roman': 'ilai',       'english': 'Leaf'},
+      ],
+      'ஈ': [
+        {'script': 'ஈ',        'roman': 'ee',         'english': 'Fly'},
+      ],
+      'உ': [
+        {'script': 'உப்பு',    'roman': 'uppu',       'english': 'Salt'},
+      ],
+      'ஊ': [
+        {'script': 'ஊஞ்சல்',  'roman': 'oonjal',     'english': 'Swing'},
+        {'script': 'ஊர்',      'roman': 'oor',        'english': 'Village'},
+      ],
+      'எ': [
+        {'script': 'எலி',      'roman': 'eli',        'english': 'Mouse'},
+        {'script': 'எருமை',    'roman': 'erumai',     'english': 'Buffalo'},
+      ],
+      'ஏ': [
+        {'script': 'ஏணி',      'roman': 'eni',        'english': 'Ladder'},
+        {'script': 'ஏரி',      'roman': 'eri',        'english': 'Lake'},
+      ],
+      'ஐ': [
+        {'script': 'ஐந்து',    'roman': 'aindhu',     'english': 'Five'},
+      ],
+      'ஒ': [
+        {'script': 'ஒட்டகம்', 'roman': 'ottakam',    'english': 'Camel'},
+      ],
+      'ஓ': [
+        {'script': 'ஓடம்',     'roman': 'odam',       'english': 'Boat'},
+        {'script': 'ஓநாய்',    'roman': 'onaai',      'english': 'Wolf'},
+      ],
+      'ஔ': [
+        {'script': 'ஔவை',      'roman': 'avvaiyar',   'english': 'Avvaiyar'},
+      ],
+      'க': [
+        {'script': 'கமலம்',    'roman': 'kamalam',    'english': 'Lotus'},
+        {'script': 'கரடி',     'roman': 'karadi',     'english': 'Bear'},
+      ],
+      'ங': [
+        {'script': 'சங்கு',    'roman': 'shangu',     'english': 'Conch shell'},
+      ],
+      'ச': [
+        {'script': 'சிங்கம்',  'roman': 'singam',     'english': 'Lion'},
+        {'script': 'சந்திரன்', 'roman': 'chandhiran', 'english': 'Moon'},
+      ],
+      'ஞ': [
+        {'script': 'ஞாயிறு',   'roman': 'naayiru',    'english': 'Sun'},
+      ],
+      'ட': [
+        {'script': 'டமருகம்',  'roman': 'damarukam',  'english': 'Drum'},
+      ],
+      'ண': [
+        {'script': 'கண்',      'roman': 'kann',       'english': 'Eye'},
+        {'script': 'மண்',      'roman': 'mann',       'english': 'Soil'},
+      ],
+      'த': [
+        {'script': 'தாமரை',    'roman': 'thaamarai',  'english': 'Lotus'},
+        {'script': 'தேன்',     'roman': 'then',       'english': 'Honey'},
+      ],
+      'ந': [
+        {'script': 'நதி',      'roman': 'nathi',      'english': 'River'},
+        {'script': 'நாய்',     'roman': 'naai',       'english': 'Dog'},
+      ],
+      'ப': [
+        {'script': 'பூ',       'roman': 'poo',        'english': 'Flower'},
+        {'script': 'பறவை',     'roman': 'paravai',    'english': 'Bird'},
+      ],
+      'ம': [
+        {'script': 'மான்',     'roman': 'maan',       'english': 'Deer'},
+        {'script': 'மீன்',     'roman': 'meen',       'english': 'Fish'},
+      ],
+      'ய': [
+        {'script': 'யானை',     'roman': 'yaanai',     'english': 'Elephant'},
+        {'script': 'யாழ்',     'roman': 'yaazh',      'english': 'Lute'},
+      ],
+      'ர': [
+        {'script': 'ரோஜா',     'roman': 'roja',       'english': 'Rose'},
+        {'script': 'ரயில்',    'roman': 'rayil',      'english': 'Train'},
+      ],
+      'ல': [
+        {'script': 'லட்சுமி',  'roman': 'lakshmi',    'english': 'Lakshmi'},
+      ],
+      'வ': [
+        {'script': 'வாத்து',   'roman': 'vaathu',     'english': 'Duck'},
+        {'script': 'வாழை',     'roman': 'vaazhai',    'english': 'Banana'},
+      ],
+      'ழ': [
+        {'script': 'தமிழ்',    'roman': 'tamizh',     'english': 'Tamil language'},
+      ],
+      'ள': [
+        {'script': 'வெள்ளரி',  'roman': 'vellari',    'english': 'Cucumber'},
+      ],
+      'ற': [
+        {'script': 'காற்று',   'roman': 'kaatru',     'english': 'Wind'},
+      ],
+      'ன': [
+        {'script': 'வான்',     'roman': 'vaan',       'english': 'Sky'},
+      ],
+    };
+
+    for (final letter in letters) {
+      final unicode = letter['unicode'] as String;
+      final words = wordData[unicode];
+      if (words == null) continue;
+
+      for (final word in words) {
+        await db.insert('word_examples', {
+          'letter_id': letter['id'],
+          'word_script': word['script'],
+          'word_roman': word['roman'],
+          'word_english': word['english'],
+          'image_path': null,
+          'audio_path': null,
+        });
+      }
+    }
+  }
+
   Future<void> _seedWordExamples(Database db) async {
     final letters = await db.rawQuery('''
       SELECT l.* FROM letters l
@@ -1166,5 +1327,44 @@ class DatabaseHelper {
     {'unicode': 'X', 'romanized': 'X', 'audio': 'letter_x.mp3'},
     {'unicode': 'Y', 'romanized': 'Y', 'audio': 'letter_y.mp3'},
     {'unicode': 'Z', 'romanized': 'Z', 'audio': 'letter_z.mp3'},
+  ];
+
+  // ---------------------------------------------------------------------------
+  // Tamil letter definitions
+  // ---------------------------------------------------------------------------
+
+  static const List<Map<String, String>> _tamilLetterDefs = [
+    // Vowels (sort_order 1–12)
+    {'unicode': 'அ',  'romanized': 'A',   'audio': 'ta_vowel_a.mp3'},
+    {'unicode': 'ஆ',  'romanized': 'Aa',  'audio': 'ta_vowel_aa.mp3'},
+    {'unicode': 'இ',  'romanized': 'I',   'audio': 'ta_vowel_i.mp3'},
+    {'unicode': 'ஈ',  'romanized': 'Ii',  'audio': 'ta_vowel_ii.mp3'},
+    {'unicode': 'உ',  'romanized': 'U',   'audio': 'ta_vowel_u.mp3'},
+    {'unicode': 'ஊ',  'romanized': 'Uu',  'audio': 'ta_vowel_uu.mp3'},
+    {'unicode': 'எ',  'romanized': 'E',   'audio': 'ta_vowel_e.mp3'},
+    {'unicode': 'ஏ',  'romanized': 'Ee',  'audio': 'ta_vowel_ee.mp3'},
+    {'unicode': 'ஐ',  'romanized': 'Ai',  'audio': 'ta_vowel_ai.mp3'},
+    {'unicode': 'ஒ',  'romanized': 'O',   'audio': 'ta_vowel_o.mp3'},
+    {'unicode': 'ஓ',  'romanized': 'Oo',  'audio': 'ta_vowel_oo.mp3'},
+    {'unicode': 'ஔ',  'romanized': 'Au',  'audio': 'ta_vowel_au.mp3'},
+    // Consonants (sort_order 13–30)
+    {'unicode': 'க',  'romanized': 'Ka',  'audio': 'ta_consonant_ka.mp3'},
+    {'unicode': 'ங',  'romanized': 'Nga', 'audio': 'ta_consonant_nga.mp3'},
+    {'unicode': 'ச',  'romanized': 'Sa',  'audio': 'ta_consonant_sa.mp3'},
+    {'unicode': 'ஞ',  'romanized': 'Nya', 'audio': 'ta_consonant_nya.mp3'},
+    {'unicode': 'ட',  'romanized': 'Da',  'audio': 'ta_consonant_da.mp3'},
+    {'unicode': 'ண',  'romanized': 'Na',  'audio': 'ta_consonant_na.mp3'},
+    {'unicode': 'த',  'romanized': 'Tha', 'audio': 'ta_consonant_tha.mp3'},
+    {'unicode': 'ந',  'romanized': 'Na',  'audio': 'ta_consonant_na2.mp3'},
+    {'unicode': 'ப',  'romanized': 'Pa',  'audio': 'ta_consonant_pa.mp3'},
+    {'unicode': 'ம',  'romanized': 'Ma',  'audio': 'ta_consonant_ma.mp3'},
+    {'unicode': 'ய',  'romanized': 'Ya',  'audio': 'ta_consonant_ya.mp3'},
+    {'unicode': 'ர',  'romanized': 'Ra',  'audio': 'ta_consonant_ra.mp3'},
+    {'unicode': 'ல',  'romanized': 'La',  'audio': 'ta_consonant_la.mp3'},
+    {'unicode': 'வ',  'romanized': 'Va',  'audio': 'ta_consonant_va.mp3'},
+    {'unicode': 'ழ',  'romanized': 'Zha', 'audio': 'ta_consonant_zha.mp3'},
+    {'unicode': 'ள',  'romanized': 'Lla', 'audio': 'ta_consonant_lla.mp3'},
+    {'unicode': 'ற',  'romanized': 'Rra', 'audio': 'ta_consonant_rra.mp3'},
+    {'unicode': 'ன',  'romanized': 'Na',  'audio': 'ta_consonant_na3.mp3'},
   ];
 }

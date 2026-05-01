@@ -177,6 +177,47 @@ _HI_MAP = {
 
 AUDIO_ENTRIES += [(name, text, _HI_VOICE) for name, text in _HI_MAP.items()]
 
+# ---------------------------------------------------------------------------
+# Tamil — ta-IN-PallaviNeural
+# ---------------------------------------------------------------------------
+_TA_VOICE = "ta-IN-PallaviNeural"
+_TA_MAP = {
+    # Vowels
+    "ta_vowel_a":   "அ",
+    "ta_vowel_aa":  "ஆ",
+    "ta_vowel_i":   "இ",
+    "ta_vowel_ii":  "ஈ",
+    "ta_vowel_u":   "உ",
+    "ta_vowel_uu":  "ஊ",
+    "ta_vowel_e":   "எ",
+    "ta_vowel_ee":  "ஏ",
+    "ta_vowel_ai":  "ஐ",
+    "ta_vowel_o":   "ஒ",
+    "ta_vowel_oo":  "ஓ",
+    "ta_vowel_au":  "ஔ",
+    # Consonants
+    "ta_consonant_ka":  "க",
+    "ta_consonant_nga": "ங",
+    "ta_consonant_sa":  "ச",
+    "ta_consonant_nya": "ஞ",
+    "ta_consonant_da":  "ட",
+    "ta_consonant_na":  "ண",
+    "ta_consonant_tha": "த",
+    "ta_consonant_na2": "ந",
+    "ta_consonant_pa":  "ப",
+    "ta_consonant_ma":  "ம",
+    "ta_consonant_ya":  "ய",
+    "ta_consonant_ra":  "ர",
+    "ta_consonant_la":  "ல",
+    "ta_consonant_va":  "வ",
+    "ta_consonant_zha": "ழ",
+    "ta_consonant_lla": "ள",
+    "ta_consonant_rra": "ற",
+    "ta_consonant_na3": "ன",
+}
+
+AUDIO_ENTRIES += [(name, text, _TA_VOICE) for name, text in _TA_MAP.items()]
+
 
 async def generate_all():
     os.makedirs(OUTPUT_DIR, exist_ok=True)

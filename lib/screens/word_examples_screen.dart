@@ -324,118 +324,126 @@ class _WordCardState extends State<_WordCard> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: _emeraldLight, width: 1.5),
       ),
-      child: Row(
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Image box — 100×100, memory-compressed to 200px on decode
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: SizedBox(
-              width: 100,
-              height: 100,
-              child: FutureBuilder<String?>(
-                future: _imageFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Container(
-                      color: _emeraldBg,
-                      child: const Center(
-                        child: SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: _emerald,
-                          ),
+          // Full-width image — tall so kids can see clearly
+          SizedBox(
+            height: 180,
+            child: FutureBuilder<String?>(
+              future: _imageFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Container(
+                    color: _emeraldBg,
+                    child: const Center(
+                      child: SizedBox(
+                        width: 32,
+                        height: 32,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: _emerald,
                         ),
                       ),
-                    );
-                  }
-                  final url = snapshot.data;
-                  if (url != null) {
-                    return Image.network(
-                      url,
-                      width: 100,
-                      height: 100,
-                      fit: BoxFit.cover,
-                      // Decode at 2× display size to cover HiDPI screens
-                      // while keeping memory use low (vs full-res decode).
-                      cacheWidth: 200,
-                      cacheHeight: 200,
-                      errorBuilder: (_, __, ___) =>
-                          _imageFallback(widget.word.wordScript),
-                      loadingBuilder: (_, child, progress) {
-                        if (progress == null) return child;
-                        return Container(
-                          color: _emeraldBg,
-                          child: const Center(
-                            child: SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: _emerald,
-                              ),
+                    ),
+                  );
+                }
+                final url = snapshot.data;
+                if (url != null) {
+                  return Image.network(
+                    url,
+                    fit: BoxFit.cover,
+                    cacheWidth: 600,
+                    errorBuilder: (_, __, ___) =>
+                        _imageFallback(widget.word.wordScript),
+                    loadingBuilder: (_, child, progress) {
+                      if (progress == null) return child;
+                      return Container(
+                        color: _emeraldBg,
+                        child: const Center(
+                          child: SizedBox(
+                            width: 32,
+                            height: 32,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: _emerald,
                             ),
                           ),
-                        );
-                      },
-                    );
-                  }
-                  return _imageFallback(widget.word.wordScript);
-                },
-              ),
+                        ),
+                      );
+                    },
+                  );
+                }
+                return _imageFallback(widget.word.wordScript);
+              },
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          // Text info row below image
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(
-                  widget.word.wordScript,
-                  style: const TextStyle(fontSize: 24),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  widget.word.wordRoman,
-                  style: BhashaTextStyles.bodySmall.copyWith(fontSize: 13),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  widget.word.wordEnglish,
-                  style: const TextStyle(
-                    fontFamily: BhashaTextStyles.fontFamily,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: _emerald,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                GestureDetector(
-                  onTap: widget.onPlay,
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.volume_up_rounded,
-                          color: _emerald, size: 18),
-                      SizedBox(width: 4),
                       Text(
-                        'Hear it',
-                        style: TextStyle(
+                        widget.word.wordScript,
+                        style: const TextStyle(fontSize: 28),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        widget.word.wordRoman,
+                        style: BhashaTextStyles.bodySmall.copyWith(fontSize: 14),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        widget.word.wordEnglish,
+                        style: const TextStyle(
                           fontFamily: BhashaTextStyles.fontFamily,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
                           color: _emerald,
                         ),
                       ),
                     ],
+                  ),
+                ),
+                GestureDetector(
+                  onTap: widget.onPlay,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: _emeraldBg,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: _emeraldLight, width: 1.5),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.volume_up_rounded,
+                            color: _emerald, size: 20),
+                        SizedBox(width: 6),
+                        Text(
+                          'Hear it',
+                          style: TextStyle(
+                            fontFamily: BhashaTextStyles.fontFamily,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: _emerald,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -451,7 +459,7 @@ class _WordCardState extends State<_WordCard> {
         child: Center(
           child: Text(
             script,
-            style: const TextStyle(fontSize: 40),
+            style: const TextStyle(fontSize: 56),
             textAlign: TextAlign.center,
           ),
         ),

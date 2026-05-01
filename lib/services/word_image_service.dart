@@ -14,6 +14,9 @@ class WordImageService {
   static const Map<String, String> _searchOverrides = {
     'god': 'Shiva',
     'sage': 'Rishi',
+    'avvaiyar': 'Avvaiyar',
+    'conch shell': 'Conch',
+    'tamil language': 'Tamil language',
   };
 
   Future<String?> getImageUrl(String englishWord) async {
