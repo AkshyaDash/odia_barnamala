@@ -10,7 +10,7 @@ import '../models/word_example.dart';
 
 class DatabaseHelper {
   static const _databaseName = 'bhasha_kids.db';
-  static const _databaseVersion = 2;
+  static const _databaseVersion = 3;
 
   DatabaseHelper._();
   static final DatabaseHelper instance = DatabaseHelper._();
@@ -101,6 +101,13 @@ class DatabaseHelper {
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
       await _addMissingOdiaWords(db);
+    }
+    if (oldVersion < 3) {
+      final teExists = await db.query('languages',
+          where: 'code = ?', whereArgs: ['te'], limit: 1);
+      if (teExists.isEmpty) {
+        await _seedTelugu(db);
+      }
     }
   }
 
@@ -360,6 +367,12 @@ class DatabaseHelper {
         where: 'code = ?', whereArgs: ['ta'], limit: 1);
     if (tamilExists.isEmpty) {
       await _seedTamil(db);
+    }
+
+    final teluguExists = await db.query('languages',
+        where: 'code = ?', whereArgs: ['te'], limit: 1);
+    if (teluguExists.isEmpty) {
+      await _seedTelugu(db);
     }
 
     final streakExists = await db.query('streak', limit: 1);
@@ -941,6 +954,228 @@ class DatabaseHelper {
     }
   }
 
+  Future<void> _seedTelugu(Database db) async {
+    final langId = await db.insert('languages', {
+      'code': 'te',
+      'name': 'Telugu',
+      'script': 'అ',
+      'total_letters': 49,
+    });
+
+    const letters = _teluguLetterDefs;
+    for (int i = 0; i < letters.length; i++) {
+      final def = letters[i];
+      await db.insert('letters', {
+        'lang_id': langId,
+        'unicode': def['unicode'],
+        'romanized': def['romanized'],
+        'audio_file': 'assets/audio/${def['audio']}',
+        'sort_order': i + 1,
+      });
+    }
+
+    await _seedTeluguWordExamples(db);
+  }
+
+  Future<void> _seedTeluguWordExamples(Database db) async {
+    final letters = await db.query('letters',
+        where: "lang_id = (SELECT id FROM languages WHERE code = 'te')",
+        orderBy: 'sort_order');
+
+    const wordData = <String, List<Map<String, String>>>{
+      // Vowels
+      'అ': [
+        {'script': 'అమ్మ',       'roman': 'amma',        'english': 'Mother'},
+        {'script': 'అడవి',       'roman': 'adavi',       'english': 'Forest'},
+      ],
+      'ఆ': [
+        {'script': 'ఆవు',        'roman': 'aavu',        'english': 'Cow'},
+        {'script': 'ఆకాశం',      'roman': 'aakaasham',   'english': 'Sky'},
+      ],
+      'ఇ': [
+        {'script': 'ఇల్లు',      'roman': 'illu',        'english': 'House'},
+        {'script': 'ఇనుము',      'roman': 'inumu',       'english': 'Iron'},
+      ],
+      'ఈ': [
+        {'script': 'ఈగ',         'roman': 'eega',        'english': 'Fly'},
+        {'script': 'ఈత',         'roman': 'eeta',        'english': 'Swimming'},
+      ],
+      'ఉ': [
+        {'script': 'ఉప్పు',      'roman': 'uppu',        'english': 'Salt'},
+        {'script': 'ఉడత',        'roman': 'uduta',       'english': 'Squirrel'},
+      ],
+      'ఊ': [
+        {'script': 'ఊరు',        'roman': 'ooru',        'english': 'Village'},
+        {'script': 'ఊయల',        'roman': 'ooyala',      'english': 'Swing'},
+      ],
+      'ఋ': [
+        {'script': 'ఋషి',        'roman': 'rushi',       'english': 'Sage'},
+      ],
+      'ఎ': [
+        {'script': 'ఎలుక',       'roman': 'eluka',       'english': 'Rat'},
+        {'script': 'ఎద్దు',      'roman': 'eddu',        'english': 'Bull'},
+      ],
+      'ఏ': [
+        {'script': 'ఏనుగు',      'roman': 'eenugu',      'english': 'Elephant'},
+        {'script': 'ఏరు',        'roman': 'eeru',        'english': 'River'},
+      ],
+      'ఐ': [
+        {'script': 'ఐదు',        'roman': 'aidu',        'english': 'Five'},
+      ],
+      'ఒ': [
+        {'script': 'ఒంటె',       'roman': 'onte',        'english': 'Camel'},
+      ],
+      'ఓ': [
+        {'script': 'ఓడ',         'roman': 'oda',         'english': 'Boat'},
+      ],
+      'ఔ': [
+        {'script': 'ఔషధం',       'roman': 'aushadham',   'english': 'Medicine'},
+      ],
+      // Consonants
+      'క': [
+        {'script': 'కమలం',       'roman': 'kamalam',     'english': 'Lotus'},
+        {'script': 'కాకి',       'roman': 'kaaki',       'english': 'Crow'},
+      ],
+      'ఖ': [
+        {'script': 'ఖర్జూరం',    'roman': 'kharjoram',   'english': 'Date fruit'},
+      ],
+      'గ': [
+        {'script': 'గడ్డి',      'roman': 'gaddi',       'english': 'Grass'},
+        {'script': 'గుర్రం',     'roman': 'gurram',      'english': 'Horse'},
+      ],
+      'ఘ': [
+        {'script': 'ఘంట',        'roman': 'ghanta',      'english': 'Bell'},
+      ],
+      'ఙ': [
+        {'script': 'అంగడి',      'roman': 'angadi',      'english': 'Shop'},
+      ],
+      'చ': [
+        {'script': 'చేప',        'roman': 'chepa',       'english': 'Fish'},
+        {'script': 'చందమామ',     'roman': 'chandamaama', 'english': 'Moon'},
+      ],
+      'ఛ': [
+        {'script': 'ఛత్రం',      'roman': 'chhathram',   'english': 'Umbrella'},
+      ],
+      'జ': [
+        {'script': 'జింక',       'roman': 'jinka',       'english': 'Deer'},
+        {'script': 'జల',         'roman': 'jala',        'english': 'Water'},
+      ],
+      'ఝ': [
+        {'script': 'ఝరి',        'roman': 'jhari',       'english': 'Stream'},
+      ],
+      'ఞ': [
+        {'script': 'అంజలి',      'roman': 'anjali',      'english': 'Salutation'},
+      ],
+      'ట': [
+        {'script': 'టమాట',       'roman': 'tamaata',     'english': 'Tomato'},
+      ],
+      'ఠ': [
+        {'script': 'ఠీవి',       'roman': 'theevi',      'english': 'Grace'},
+      ],
+      'డ': [
+        {'script': 'డబ్బు',      'roman': 'dabbu',       'english': 'Money'},
+        {'script': 'డేగ',        'roman': 'dega',        'english': 'Eagle'},
+      ],
+      'ఢ': [
+        {'script': 'ఢోలు',       'roman': 'dholu',       'english': 'Drum'},
+      ],
+      'ణ': [
+        {'script': 'బాణం',       'roman': 'baanam',      'english': 'Arrow'},
+      ],
+      'త': [
+        {'script': 'తల',         'roman': 'tala',        'english': 'Head'},
+        {'script': 'తమ్ముడు',    'roman': 'tammuda',     'english': 'Younger brother'},
+      ],
+      'థ': [
+        {'script': 'థాలి',       'roman': 'thaali',      'english': 'Plate'},
+      ],
+      'ద': [
+        {'script': 'దీపం',       'roman': 'deepam',      'english': 'Lamp'},
+        {'script': 'దారి',       'roman': 'daari',       'english': 'Road'},
+      ],
+      'ధ': [
+        {'script': 'ధనం',        'roman': 'dhanam',      'english': 'Wealth'},
+      ],
+      'న': [
+        {'script': 'నది',        'roman': 'nadi',        'english': 'River'},
+        {'script': 'నక్క',       'roman': 'nakka',       'english': 'Fox'},
+      ],
+      'ప': [
+        {'script': 'పువ్వు',     'roman': 'puvvu',       'english': 'Flower'},
+        {'script': 'పుస్తకం',    'roman': 'pustakam',    'english': 'Book'},
+      ],
+      'ఫ': [
+        {'script': 'ఫలం',        'roman': 'phalam',      'english': 'Fruit'},
+      ],
+      'బ': [
+        {'script': 'బడి',        'roman': 'badi',        'english': 'School'},
+        {'script': 'బంతి',       'roman': 'banti',       'english': 'Ball'},
+      ],
+      'భ': [
+        {'script': 'భూమి',       'roman': 'bhoomi',      'english': 'Earth'},
+      ],
+      'మ': [
+        {'script': 'మొక్క',      'roman': 'mokka',       'english': 'Plant'},
+        {'script': 'మావి',       'roman': 'maavi',       'english': 'Mango tree'},
+      ],
+      'య': [
+        {'script': 'యాత్ర',      'roman': 'yaatra',      'english': 'Journey'},
+      ],
+      'ర': [
+        {'script': 'రాయి',       'roman': 'raayi',       'english': 'Stone'},
+        {'script': 'రైలు',       'roman': 'railu',       'english': 'Train'},
+      ],
+      'ల': [
+        {'script': 'లేడి',       'roman': 'ledi',        'english': 'Fawn'},
+      ],
+      'వ': [
+        {'script': 'వాన',        'roman': 'vaana',       'english': 'Rain'},
+        {'script': 'వంతెన',      'roman': 'vantena',     'english': 'Bridge'},
+      ],
+      'శ': [
+        {'script': 'శంఖం',       'roman': 'shankham',    'english': 'Conch'},
+        {'script': 'శుభం',       'roman': 'shubham',     'english': 'Auspicious'},
+      ],
+      'ష': [
+        {'script': 'విష్ణువు',   'roman': 'vishnuvu',    'english': 'Lord Vishnu'},
+      ],
+      'స': [
+        {'script': 'సూర్యుడు',   'roman': 'sooryudu',    'english': 'Sun'},
+        {'script': 'సముద్రం',    'roman': 'samudram',    'english': 'Ocean'},
+      ],
+      'హ': [
+        {'script': 'హంస',        'roman': 'hamsa',       'english': 'Swan'},
+        {'script': 'హస్తం',      'roman': 'hastam',      'english': 'Hand'},
+      ],
+      'ళ': [
+        {'script': 'కళ',         'roman': 'kala',        'english': 'Art'},
+      ],
+      'క్ష': [
+        {'script': 'క్షేత్రం',   'roman': 'kshetram',    'english': 'Field'},
+      ],
+      'జ్ఞ': [
+        {'script': 'జ్ఞానం',     'roman': 'gnanam',      'english': 'Knowledge'},
+      ],
+    };
+
+    for (final letter in letters) {
+      final unicode = letter['unicode'] as String;
+      final words = wordData[unicode];
+      if (words == null) continue;
+
+      for (final word in words) {
+        await db.insert('word_examples', {
+          'letter_id': letter['id'],
+          'word_script': word['script'],
+          'word_roman': word['roman'],
+          'word_english': word['english'],
+          'image_path': null,
+          'audio_path': null,
+        });
+      }
+    }
+  }
+
   Future<void> _seedWordExamples(Database db) async {
     final letters = await db.rawQuery('''
       SELECT l.* FROM letters l
@@ -1327,6 +1562,68 @@ class DatabaseHelper {
     {'unicode': 'X', 'romanized': 'X', 'audio': 'letter_x.mp3'},
     {'unicode': 'Y', 'romanized': 'Y', 'audio': 'letter_y.mp3'},
     {'unicode': 'Z', 'romanized': 'Z', 'audio': 'letter_z.mp3'},
+  ];
+
+  // ---------------------------------------------------------------------------
+  // Tamil letter definitions
+  // ---------------------------------------------------------------------------
+
+  // ---------------------------------------------------------------------------
+  // Telugu letter definitions
+  // ---------------------------------------------------------------------------
+
+  static const List<Map<String, String>> _teluguLetterDefs = [
+    // Vowels (sort_order 1–13)
+    {'unicode': 'అ',   'romanized': 'A',    'audio': 'te_vowel_a.mp3'},
+    {'unicode': 'ఆ',   'romanized': 'Aa',   'audio': 'te_vowel_aa.mp3'},
+    {'unicode': 'ఇ',   'romanized': 'I',    'audio': 'te_vowel_i.mp3'},
+    {'unicode': 'ఈ',   'romanized': 'Ii',   'audio': 'te_vowel_ii.mp3'},
+    {'unicode': 'ఉ',   'romanized': 'U',    'audio': 'te_vowel_u.mp3'},
+    {'unicode': 'ఊ',   'romanized': 'Uu',   'audio': 'te_vowel_uu.mp3'},
+    {'unicode': 'ఋ',   'romanized': 'Ru',   'audio': 'te_vowel_ru.mp3'},
+    {'unicode': 'ఎ',   'romanized': 'E',    'audio': 'te_vowel_e.mp3'},
+    {'unicode': 'ఏ',   'romanized': 'Ee',   'audio': 'te_vowel_ee.mp3'},
+    {'unicode': 'ఐ',   'romanized': 'Ai',   'audio': 'te_vowel_ai.mp3'},
+    {'unicode': 'ఒ',   'romanized': 'O',    'audio': 'te_vowel_o.mp3'},
+    {'unicode': 'ఓ',   'romanized': 'Oo',   'audio': 'te_vowel_oo.mp3'},
+    {'unicode': 'ఔ',   'romanized': 'Au',   'audio': 'te_vowel_au.mp3'},
+    // Consonants (sort_order 14–49)
+    {'unicode': 'క',   'romanized': 'Ka',   'audio': 'te_consonant_ka.mp3'},
+    {'unicode': 'ఖ',   'romanized': 'Kha',  'audio': 'te_consonant_kha.mp3'},
+    {'unicode': 'గ',   'romanized': 'Ga',   'audio': 'te_consonant_ga.mp3'},
+    {'unicode': 'ఘ',   'romanized': 'Gha',  'audio': 'te_consonant_gha.mp3'},
+    {'unicode': 'ఙ',   'romanized': 'Nga',  'audio': 'te_consonant_nga.mp3'},
+    {'unicode': 'చ',   'romanized': 'Cha',  'audio': 'te_consonant_cha.mp3'},
+    {'unicode': 'ఛ',   'romanized': 'Chha', 'audio': 'te_consonant_chha.mp3'},
+    {'unicode': 'జ',   'romanized': 'Ja',   'audio': 'te_consonant_ja.mp3'},
+    {'unicode': 'ఝ',   'romanized': 'Jha',  'audio': 'te_consonant_jha.mp3'},
+    {'unicode': 'ఞ',   'romanized': 'Nya',  'audio': 'te_consonant_nya.mp3'},
+    {'unicode': 'ట',   'romanized': 'Ta',   'audio': 'te_consonant_ta.mp3'},
+    {'unicode': 'ఠ',   'romanized': 'Tha',  'audio': 'te_consonant_tha.mp3'},
+    {'unicode': 'డ',   'romanized': 'Da',   'audio': 'te_consonant_da.mp3'},
+    {'unicode': 'ఢ',   'romanized': 'Dha',  'audio': 'te_consonant_dha.mp3'},
+    {'unicode': 'ణ',   'romanized': 'Na',   'audio': 'te_consonant_na.mp3'},
+    {'unicode': 'త',   'romanized': 'Ta',   'audio': 'te_consonant_ta2.mp3'},
+    {'unicode': 'థ',   'romanized': 'Tha',  'audio': 'te_consonant_tha2.mp3'},
+    {'unicode': 'ద',   'romanized': 'Da',   'audio': 'te_consonant_da2.mp3'},
+    {'unicode': 'ధ',   'romanized': 'Dha',  'audio': 'te_consonant_dha2.mp3'},
+    {'unicode': 'న',   'romanized': 'Na',   'audio': 'te_consonant_na2.mp3'},
+    {'unicode': 'ప',   'romanized': 'Pa',   'audio': 'te_consonant_pa.mp3'},
+    {'unicode': 'ఫ',   'romanized': 'Pha',  'audio': 'te_consonant_pha.mp3'},
+    {'unicode': 'బ',   'romanized': 'Ba',   'audio': 'te_consonant_ba.mp3'},
+    {'unicode': 'భ',   'romanized': 'Bha',  'audio': 'te_consonant_bha.mp3'},
+    {'unicode': 'మ',   'romanized': 'Ma',   'audio': 'te_consonant_ma.mp3'},
+    {'unicode': 'య',   'romanized': 'Ya',   'audio': 'te_consonant_ya.mp3'},
+    {'unicode': 'ర',   'romanized': 'Ra',   'audio': 'te_consonant_ra.mp3'},
+    {'unicode': 'ల',   'romanized': 'La',   'audio': 'te_consonant_la.mp3'},
+    {'unicode': 'వ',   'romanized': 'Va',   'audio': 'te_consonant_va.mp3'},
+    {'unicode': 'శ',   'romanized': 'Sha',  'audio': 'te_consonant_sha.mp3'},
+    {'unicode': 'ష',   'romanized': 'Ssa',  'audio': 'te_consonant_ssa.mp3'},
+    {'unicode': 'స',   'romanized': 'Sa',   'audio': 'te_consonant_sa.mp3'},
+    {'unicode': 'హ',   'romanized': 'Ha',   'audio': 'te_consonant_ha.mp3'},
+    {'unicode': 'ళ',   'romanized': 'Lla',  'audio': 'te_consonant_lla.mp3'},
+    {'unicode': 'క్ష', 'romanized': 'Ksha', 'audio': 'te_consonant_ksha.mp3'},
+    {'unicode': 'జ్ఞ', 'romanized': 'Gna',  'audio': 'te_consonant_gna.mp3'},
   ];
 
   // ---------------------------------------------------------------------------

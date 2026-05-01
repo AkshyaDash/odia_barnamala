@@ -218,6 +218,66 @@ _TA_MAP = {
 
 AUDIO_ENTRIES += [(name, text, _TA_VOICE) for name, text in _TA_MAP.items()]
 
+# ---------------------------------------------------------------------------
+# Telugu — te-IN-ShrutiNeural
+# ---------------------------------------------------------------------------
+_TE_VOICE = "te-IN-ShrutiNeural"
+_TE_MAP = {
+    # Vowels
+    "te_vowel_a":   "అ",
+    "te_vowel_aa":  "ఆ",
+    "te_vowel_i":   "ఇ",
+    "te_vowel_ii":  "ఈ",
+    "te_vowel_u":   "ఉ",
+    "te_vowel_uu":  "ఊ",
+    "te_vowel_ru":  "ఋ",
+    "te_vowel_e":   "ఎ",
+    "te_vowel_ee":  "ఏ",
+    "te_vowel_ai":  "ఐ",
+    "te_vowel_o":   "ఒ",
+    "te_vowel_oo":  "ఓ",
+    "te_vowel_au":  "ఔ",
+    # Consonants
+    "te_consonant_ka":   "క",
+    "te_consonant_kha":  "ఖ",
+    "te_consonant_ga":   "గ",
+    "te_consonant_gha":  "ఘ",
+    "te_consonant_nga":  "ఙ",
+    "te_consonant_cha":  "చ",
+    "te_consonant_chha": "ఛ",
+    "te_consonant_ja":   "జ",
+    "te_consonant_jha":  "ఝ",
+    "te_consonant_nya":  "ఞ",
+    "te_consonant_ta":   "ట",
+    "te_consonant_tha":  "ఠ",
+    "te_consonant_da":   "డ",
+    "te_consonant_dha":  "ఢ",
+    "te_consonant_na":   "ణ",
+    "te_consonant_ta2":  "త",
+    "te_consonant_tha2": "థ",
+    "te_consonant_da2":  "ద",
+    "te_consonant_dha2": "ధ",
+    "te_consonant_na2":  "న",
+    "te_consonant_pa":   "ప",
+    "te_consonant_pha":  "ఫ",
+    "te_consonant_ba":   "బ",
+    "te_consonant_bha":  "భ",
+    "te_consonant_ma":   "మ",
+    "te_consonant_ya":   "య",
+    "te_consonant_ra":   "ర",
+    "te_consonant_la":   "ల",
+    "te_consonant_va":   "వ",
+    "te_consonant_sha":  "శ",
+    "te_consonant_ssa":  "ష",
+    "te_consonant_sa":   "స",
+    "te_consonant_ha":   "హ",
+    "te_consonant_lla":  "ళ",
+    "te_consonant_ksha": "క్ష",
+    "te_consonant_gna":  "జ్ఞ",
+}
+
+AUDIO_ENTRIES += [(name, text, _TE_VOICE) for name, text in _TE_MAP.items()]
+
 
 async def generate_all():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
