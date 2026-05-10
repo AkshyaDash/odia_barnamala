@@ -10,6 +10,7 @@ import '../data/bhasha_database_helper.dart';
 import '../models/letter_new.dart';
 import '../painters/letter_trace_painter.dart';
 import '../providers/home_provider.dart';
+import '../services/audio_generation_service.dart';
 import '../theme/bhasha_design_system.dart';
 
 class LetterTraceScreen extends StatefulWidget {
@@ -69,10 +70,20 @@ class _LetterTraceScreenState extends State<LetterTraceScreen>
     super.dispose();
   }
 
-  // Strip "assets/" prefix — audioplayers uses AssetSource which prepends it
   Future<void> _playLetterAudio() async {
+    // Capture context-dependent values before any await.
+    final langCode =
+        Provider.of<HomeProvider>(context, listen: false).activeLanguage?.code;
     try {
       await _audioPlayer.stop();
+      if (langCode != null && widget.letter.id != null) {
+        final local = AudioGenerationService.instance
+            .resolveLetterAudioPath(langCode, widget.letter.id!);
+        if (local != null) {
+          await _audioPlayer.play(DeviceFileSource(local));
+          return;
+        }
+      }
       final path = widget.letter.audioFile.replaceFirst('assets/', '');
       await _audioPlayer.play(AssetSource(path));
     } catch (_) {}

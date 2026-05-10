@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../config/app_config.dart';
 import '../theme/bhasha_design_system.dart';
 
 const String kRouteHome = '/home';
@@ -60,9 +62,17 @@ class _SplashScreenState extends State<SplashScreen>
       _stripController.forward();
     });
 
-    // Navigate after 2500ms
-    Future.delayed(const Duration(milliseconds: 2500), () {
-      if (mounted) {
+    // Navigate after 2500ms — in dev mode redirect to onboarding if not yet done
+    // (safety net for app-resume scenarios where main() didn't re-run).
+    Future.delayed(const Duration(milliseconds: 2500), () async {
+      if (!mounted) return;
+      if (AppConfig.isDevelopment) {
+        final prefs = await SharedPreferences.getInstance();
+        if (!mounted) return;
+        final done = prefs.getBool('onboarding_complete') ?? false;
+        Navigator.of(context)
+            .pushReplacementNamed(done ? kRouteHome : '/onboarding');
+      } else {
         Navigator.of(context).pushReplacementNamed(kRouteHome);
       }
     });

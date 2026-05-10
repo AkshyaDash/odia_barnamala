@@ -6,6 +6,7 @@ import '../data/bhasha_database_helper.dart';
 import '../models/language.dart';
 import '../models/letter_new.dart';
 import '../models/word_example.dart';
+import '../services/audio_generation_service.dart';
 import '../services/word_image_service.dart';
 import '../theme/bhasha_design_system.dart';
 
@@ -62,15 +63,30 @@ class _WordExamplesScreenState extends State<WordExamplesScreen> {
 
   Future<void> _playLetterAudio(Letter letter) async {
     try {
-      await _audioPlayer.setAsset(letter.audioFile);
+      final local = letter.id != null
+          ? AudioGenerationService.instance
+              .resolveLetterAudioPath(widget.language.code, letter.id!)
+          : null;
+      if (local != null) {
+        await _audioPlayer.setFilePath(local);
+      } else {
+        await _audioPlayer.setAsset(letter.audioFile);
+      }
       await _audioPlayer.play();
     } catch (_) {}
   }
 
   Future<void> _playWordAudio(WordExample word) async {
-    if (word.audioPath == null) return;
     try {
-      await _audioPlayer.setAsset(word.audioPath!);
+      final local = word.id != null
+          ? AudioGenerationService.instance
+              .resolveWordAudioPath(widget.language.code, word.id!)
+          : null;
+      if (local != null) {
+        await _audioPlayer.setFilePath(local);
+      } else if (word.audioPath != null) {
+        await _audioPlayer.setAsset(word.audioPath!);
+      }
       await _audioPlayer.play();
     } catch (_) {}
   }
@@ -317,8 +333,11 @@ class _WordCardState extends State<_WordCard> {
   @override
   void initState() {
     super.initState();
-    _imageFuture =
-        WordImageService.instance.getImageUrl(widget.word.wordEnglish);
+    // Use the persisted URL from the DB when available (set during onboarding
+    // prefetch), falling back to a live Wikipedia lookup otherwise.
+    _imageFuture = widget.word.imagePath != null
+        ? Future.value(widget.word.imagePath)
+        : WordImageService.instance.getImageUrl(widget.word.wordEnglish);
   }
 
   @override

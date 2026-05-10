@@ -9,6 +9,7 @@ import '../data/bhasha_database_helper.dart';
 import '../models/language.dart';
 import '../models/letter_new.dart';
 import '../providers/quiz_provider.dart';
+import '../services/audio_generation_service.dart';
 import '../theme/bhasha_design_system.dart';
 
 class QuizScreen extends StatefulWidget {
@@ -41,7 +42,15 @@ class _QuizScreenState extends State<QuizScreen> {
 
   Future<void> _playLetterAudio(Letter letter) async {
     try {
-      await _audioPlayer.setAsset(letter.audioFile);
+      final local = letter.id != null
+          ? AudioGenerationService.instance
+              .resolveLetterAudioPath(widget.language.code, letter.id!)
+          : null;
+      if (local != null) {
+        await _audioPlayer.setFilePath(local);
+      } else {
+        await _audioPlayer.setAsset(letter.audioFile);
+      }
       await _audioPlayer.play();
     } catch (_) {}
   }

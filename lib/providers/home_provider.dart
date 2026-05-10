@@ -5,6 +5,7 @@ import '../data/bhasha_database_helper.dart';
 import '../models/language.dart';
 import '../models/letter_new.dart';
 import '../models/streak.dart';
+import '../services/language_purchase_service.dart';
 
 class HomeProvider extends ChangeNotifier {
   final DatabaseHelper _db = DatabaseHelper.instance;
@@ -22,7 +23,10 @@ class HomeProvider extends ChangeNotifier {
   Letter? get lastAccessedLetter => _lastAccessedLetter;
 
   Future<void> loadHomeData() async {
-    _languages = await _db.getAllLanguages();
+    final all = await _db.getAllLanguages();
+    _languages = all
+        .where((l) => LanguagePurchaseService.instance.isUnlocked(l.code))
+        .toList();
 
     // Restore saved language or default to first (Odia)
     final prefs = await SharedPreferences.getInstance();

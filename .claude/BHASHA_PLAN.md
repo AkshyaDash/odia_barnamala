@@ -14,7 +14,11 @@ A kids' alphabet learning app covering all **13 languages printed on Indian curr
 
 ---
 
-## The 13 languages
+## The languages
+
+Indian currency notes carry 17 languages. All 17 are shown in the onboarding Language Picker. The first release ships with 13 (Phase 2); the remaining 4 are added in a later update.
+
+### Phase 2 release (13 languages)
 
 | # | Language | Script family |
 |---|----------|---------------|
@@ -32,7 +36,14 @@ A kids' alphabet learning app covering all **13 languages printed on Indian curr
 | 12 | Punjabi | Gurmukhi |
 | 13 | Assamese | Bengali (variant) |
 
-> Sanskrit was on older notes but is excluded from the core 13 for now.
+### Planned additions (future update — 4 languages)
+
+| # | Language | Script family |
+|---|----------|---------------|
+| 14 | Kashmiri | Perso-Arabic / Devanagari |
+| 15 | Konkani | Devanagari |
+| 16 | Nepali | Devanagari |
+| 17 | Sanskrit | Devanagari |
 
 ---
 
@@ -132,6 +143,42 @@ CREATE TABLE settings (
 -- ('daily_letter_id', '42')
 -- ('child_name', 'Aarav')
 ```
+
+---
+
+## Onboarding flow (first-launch only)
+
+Four screens shown on first launch. After completion the user lands on the main app home screen. Onboarding is skipped on subsequent launches (store a `onboarding_complete = 1` flag in the `settings` table).
+
+### Screen 1 — Splash
+- Rangoli-inspired background pattern
+- Animated floating Bhasha logo
+- Loading indicator dots beneath the logo
+- Tap anywhere (or auto-advance after animation completes) to continue
+
+### Screen 2 — Welcome
+- Saffron gradient header
+- Feature highlight cards slide in with staggered animation
+- Two CTAs:
+  - **"Choose your language"** (primary, orange) → goes to Screen 3
+  - **"I'll decide later"** (secondary/ghost) → skips to main home screen with only English unlocked
+
+### Screen 3 — Language Picker
+- Lists all 17 Indian currency note languages with their name in English and native script characters
+- Live search bar — filters by English name or native script in real time
+- Languages grouped into two sections:
+  - **Always Free** — English only, locked with a green "Free" badge (cannot be deselected)
+  - **₹199 per unlock** — all other 16 languages; tapping toggles selection with an orange highlight
+- Sticky footer shows selected count and running total (e.g. "3 languages selected — ₹597")
+- "Continue" button in footer → goes to Screen 4 (or directly home if no paid language selected)
+
+> **Note on language count:** The Language Picker shows all 17 languages appearing on Indian currency notes (the 15 scheduled-language panel languages + Hindi + English). The core 13 listed in the languages table are the first release; the remaining 4 (Kashmiri, Konkani, Nepali, Sanskrit) can be added in a later update. Locked/unpurchased languages show as grayed out in the picker even after onboarding.
+
+### Screen 4 — Preparing / Download progress
+- One animated progress bar per selected language, bars stagger in sequentially
+- Each bar fills to 100%, then a gold tick mark appears
+- When all languages are ready: "All set! 🎉" message with a celebration animation
+- Auto-navigates to home screen after a short pause
 
 ---
 
@@ -242,7 +289,8 @@ Improve the existing Odia app to the quality standard before scaling.
 - [ ] Test thoroughly on a physical Android device
 
 ### Phase 2 — Multi-language (Weeks 4–7)
-- [ ] Build language home screen (13 tiles)
+- [ ] Build 4-screen onboarding flow (Splash → Welcome → Language Picker → Preparing)
+- [ ] Build language home screen (13 tiles for Phase 2; all 17 visible in Language Picker with future-4 shown as "coming soon")
 - [ ] Create content pipeline: JSON → SQLite seed for each language
 - [ ] Source and bundle audio assets (native speaker recordings per letter)
 - [ ] Implement freemium gate (English free, others locked)
@@ -289,6 +337,7 @@ When working in this repo:
 5. **In-app purchase logic** must handle: not purchased, purchase pending, purchase restored, and purchase failed states gracefully.
 6. **Target Android SDK:** minSdk 21, targetSdk 34.
 7. **The free language is English** (`code = 'english'`, `is_free = 1` in the `languages` table). All others require purchase.
+8. **Onboarding runs once on first launch.** Gate it with `settings` row `onboarding_complete = '1'`. Screens: Splash → Welcome → Language Picker → Preparing → Home. If the user taps "I'll decide later" on Screen 2, skip to Home with only English unlocked.
 
 ---
 
@@ -303,5 +352,5 @@ When working in this repo:
 
 ---
 
-*Last updated: April 2026*
+*Last updated: May 2026*
 *Plan agreed between project owner and Claude*

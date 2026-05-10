@@ -29,7 +29,13 @@
       "Bash(\"/c/Users/Akshya/AppData/Local/Android/Sdk/platform-tools/adb.exe\" logcat *)",
       "Bash(/c/Users/Akshya/AppData/Local/Android/Sdk/platform-tools/adb.exe shell *)",
       "Bash(python generate_audio.py)",
-      "Bash(pip install *)"
+      "Bash(pip install *)",
+      "Bash(git revert *)",
+      "Bash(Get-ChildItem -Path \"c:\\\\GitRepo\\\\odia_barnamala\" -Force)",
+      "Bash(Select-Object Name, FullName)",
+      "Bash(Get-ChildItem -Recurse -Depth 2)",
+      "Bash(Select-Object -Property FullName, PSIsContainer)",
+      "Bash(Remove-Item \"c:\\\\GitRepo\\\\odia_barnamala\\\\lib\\\\services\\\\audio_download_service.dart\" -Force)"
     ]
   }
 }

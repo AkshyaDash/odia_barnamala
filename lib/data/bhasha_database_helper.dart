@@ -330,6 +330,26 @@ class DatabaseHelper {
     return rows.map(WordExample.fromMap).toList();
   }
 
+  Future<List<WordExample>> getWordExamplesForLanguage(int langId) async {
+    final db = await database;
+    final rows = await db.rawQuery('''
+      SELECT we.* FROM word_examples we
+      JOIN letters l ON we.letter_id = l.id
+      WHERE l.lang_id = ?
+    ''', [langId]);
+    return rows.map(WordExample.fromMap).toList();
+  }
+
+  Future<void> updateWordImagePath(int wordId, String url) async {
+    final db = await database;
+    await db.update(
+      'word_examples',
+      {'image_path': url},
+      where: 'id = ?',
+      whereArgs: [wordId],
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // Seeding
   // ---------------------------------------------------------------------------

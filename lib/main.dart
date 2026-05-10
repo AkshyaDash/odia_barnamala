@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import 'config/app_config.dart';
 import 'data/bhasha_database_helper.dart';
 import 'models/language.dart';
 import 'models/letter_new.dart';
@@ -9,6 +11,7 @@ import 'providers/bhasha_progress_provider.dart';
 import 'providers/home_provider.dart';
 import 'providers/quiz_provider.dart';
 import 'screens/bhasha_home_screen.dart';
+import 'screens/language_onboarding_screen.dart';
 import 'screens/letter_grid_screen.dart';
 import 'screens/letter_trace_screen.dart';
 import 'screens/progress_screen.dart';
@@ -16,6 +19,8 @@ import 'screens/quiz_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/word_examples_screen.dart';
+import 'services/audio_generation_service.dart';
+import 'services/language_purchase_service.dart';
 import 'theme/bhasha_design_system.dart';
 
 void main() async {
@@ -23,6 +28,15 @@ void main() async {
 
   final db = DatabaseHelper.instance;
   await db.seedDatabase();
+
+  // Initialize services before the UI starts.
+  await LanguagePurchaseService.instance.initialize();
+  await AudioGenerationService.instance.initialize();
+
+  // In development mode always show onboarding without touching SharedPreferences.
+  // This works even when the app resumes (main() is not re-run on resume).
+  final onboardingDone =
+      AppConfig.isDevelopment ? false : await _isOnboardingComplete();
 
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -42,8 +56,9 @@ void main() async {
         title: 'Bhasha Kids',
         debugShowCheckedModeBanner: false,
         theme: bhashaTheme(),
-        initialRoute: '/',
+        initialRoute: onboardingDone ? '/' : '/onboarding',
         routes: {
+          '/onboarding': (_) => const LanguageOnboardingScreen(),
           '/': (_) => const SplashScreen(),
           kRouteHome: (_) => const BhashaHomeScreen(),
           kRouteLetterGrid: (ctx) => LetterGridScreen(
@@ -63,4 +78,9 @@ void main() async {
       ),
     ),
   );
+}
+
+Future<bool> _isOnboardingComplete() async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getBool('onboarding_complete') ?? false;
 }

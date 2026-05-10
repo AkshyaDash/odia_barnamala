@@ -1,0 +1,969 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Noto+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --saffron: #FF6B1A;
+    --saffron-light: #FF8C42;
+    --saffron-pale: #FFF0E6;
+    --green: #138808;
+    --green-light: #2AAD24;
+    --green-pale: #E8F5E8;
+    --navy: #000080;
+    --navy-light: #1A1AB8;
+    --gold: #FFD700;
+    --gold-dark: #E6B800;
+    --cream: #FFFDF7;
+    --text-dark: #1A1206;
+    --text-mid: #5C4A1E;
+    --text-light: #9A8060;
+    --radius: 20px;
+    --radius-sm: 12px;
+  }
+
+  body {
+    font-family: 'Baloo 2', cursive;
+    background: #F0EDE6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 16px;
+  }
+
+  .device-frame {
+    width: 375px;
+    min-height: 780px;
+    background: var(--cream);
+    border-radius: 44px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.08);
+  }
+
+  /* ─── SCREEN WRAPPER ─── */
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    overflow: hidden;
+  }
+  .screen.hidden { opacity: 0; pointer-events: none; transform: translateX(30px); }
+  .screen.exit { opacity: 0; pointer-events: none; transform: translateX(-30px); }
+
+  /* ─── SPLASH ─── */
+  #splash {
+    background: linear-gradient(160deg, #FF6B1A 0%, #E8500A 40%, #000080 100%);
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .rangoli-bg {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    opacity: 0.12;
+  }
+  .rangoli-bg circle, .rangoli-bg path { fill: none; stroke: white; }
+
+  .splash-logo {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    animation: splashIn 0.8s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+  @keyframes splashIn {
+    from { opacity: 0; transform: scale(0.6) rotate(-8deg); }
+    to   { opacity: 1; transform: scale(1) rotate(0deg); }
+  }
+
+  .logo-circle {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    border: 3px solid rgba(255,255,255,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    font-size: 64px;
+    animation: logoFloat 3s ease-in-out infinite;
+  }
+  @keyframes logoFloat {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  .splash-title {
+    font-size: 42px;
+    font-weight: 800;
+    color: white;
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+  .splash-title span {
+    display: block;
+    font-size: 18px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.75);
+    letter-spacing: 3px;
+    margin-top: 6px;
+    font-family: 'Noto Sans', sans-serif;
+  }
+
+  .splash-subtitle {
+    color: rgba(255,255,255,0.65);
+    font-size: 14px;
+    margin-top: 14px;
+    font-family: 'Noto Sans', sans-serif;
+  }
+
+  .splash-dots {
+    display: flex;
+    gap: 6px;
+    margin-top: 60px;
+    position: relative;
+    z-index: 2;
+  }
+  .splash-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.35);
+    animation: dotPulse 1.4s ease-in-out infinite;
+  }
+  .splash-dot:nth-child(2) { animation-delay: 0.2s; }
+  .splash-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes dotPulse {
+    0%,80%,100% { transform: scale(1); background: rgba(255,255,255,0.35); }
+    40% { transform: scale(1.4); background: white; }
+  }
+
+  .splash-tap {
+    color: rgba(255,255,255,0.55);
+    font-size: 13px;
+    margin-top: 12px;
+    position: relative;
+    z-index: 2;
+    font-family: 'Noto Sans', sans-serif;
+    animation: tapBlink 2s ease-in-out infinite;
+  }
+  @keyframes tapBlink { 0%,100%{opacity:.55} 50%{opacity:1} }
+
+  /* ─── WELCOME ─── */
+  #welcome {
+    background: var(--cream);
+  }
+
+  .welcome-header {
+    background: linear-gradient(135deg, #FF6B1A, #E8500A);
+    padding: 52px 28px 36px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .welcome-header::after {
+    content: '';
+    position: absolute;
+    bottom: -24px; left: 0; right: 0;
+    height: 48px;
+    background: var(--cream);
+    border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  }
+
+  .welcome-wave {
+    position: absolute;
+    top: 0; right: 0;
+    width: 180px; height: 180px;
+    opacity: 0.12;
+  }
+
+  .welcome-greeting {
+    font-size: 13px;
+    color: rgba(255,255,255,0.75);
+    font-family: 'Noto Sans', sans-serif;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .welcome-title {
+    font-size: 32px;
+    font-weight: 800;
+    color: white;
+    line-height: 1.1;
+  }
+
+  .welcome-title em {
+    font-style: normal;
+    color: var(--gold);
+  }
+
+  .welcome-body {
+    padding: 36px 24px 20px;
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .section-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-light);
+    font-family: 'Noto Sans', sans-serif;
+    margin-bottom: 14px;
+    padding-left: 2px;
+  }
+
+  .feature-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 28px;
+  }
+
+  .feature-card {
+    background: white;
+    border: 1.5px solid #EDE8DF;
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    animation: cardSlide 0.5s cubic-bezier(0.34,1.3,0.64,1) both;
+  }
+  .feature-card:nth-child(1) { animation-delay: 0.1s; }
+  .feature-card:nth-child(2) { animation-delay: 0.2s; }
+  .feature-card:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes cardSlide {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .feature-icon {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .icon-orange { background: var(--saffron-pale); }
+  .icon-green  { background: var(--green-pale); }
+  .icon-blue   { background: #EAF0FF; }
+
+  .feature-text h4 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 2px;
+  }
+  .feature-text p {
+    font-size: 12px;
+    color: var(--text-light);
+    font-family: 'Noto Sans', sans-serif;
+    font-weight: 400;
+    line-height: 1.4;
+  }
+
+  .btn-primary {
+    width: 100%;
+    padding: 17px;
+    background: linear-gradient(135deg, var(--saffron), #E8500A);
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Baloo 2', cursive;
+    font-size: 17px;
+    font-weight: 700;
+    color: white;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 6px 24px rgba(255,107,26,0.38);
+  }
+  .btn-primary:active { transform: scale(0.97); box-shadow: 0 3px 12px rgba(255,107,26,0.3); }
+
+  .btn-secondary {
+    width: 100%;
+    padding: 14px;
+    background: transparent;
+    border: 1.5px solid #DDD8CC;
+    border-radius: var(--radius);
+    font-family: 'Baloo 2', cursive;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-mid);
+    cursor: pointer;
+    margin-top: 10px;
+    transition: background 0.15s;
+  }
+  .btn-secondary:hover { background: #F5F0E8; }
+
+  /* ─── LANGUAGE SELECT ─── */
+  #langselect {
+    background: #FAFAF7;
+  }
+
+  .langselect-header {
+    background: white;
+    padding: 48px 24px 20px;
+    border-bottom: 1px solid #EDE8DF;
+  }
+
+  .back-btn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: #F2EDE4;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    margin-bottom: 16px;
+    transition: background 0.15s;
+  }
+  .back-btn:hover { background: #E8E0D4; }
+
+  .langselect-title {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--text-dark);
+    line-height: 1.15;
+  }
+  .langselect-sub {
+    font-size: 13px;
+    color: var(--text-light);
+    font-family: 'Noto Sans', sans-serif;
+    margin-top: 6px;
+  }
+
+  .lang-search {
+    margin: 16px 24px 0;
+    position: relative;
+  }
+  .lang-search input {
+    width: 100%;
+    padding: 12px 16px 12px 40px;
+    border: 1.5px solid #EDE8DF;
+    border-radius: 50px;
+    font-family: 'Noto Sans', sans-serif;
+    font-size: 14px;
+    background: white;
+    color: var(--text-dark);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .lang-search input:focus { border-color: var(--saffron); }
+  .lang-search::before {
+    content: '🔍';
+    position: absolute;
+    left: 14px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+  }
+
+  .free-badge-row {
+    padding: 14px 24px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .free-pill {
+    background: var(--green-pale);
+    color: var(--green);
+    border: 1px solid rgba(19,136,8,0.2);
+    border-radius: 50px;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: 'Noto Sans', sans-serif;
+    letter-spacing: 1px;
+    padding: 4px 10px;
+    text-transform: uppercase;
+  }
+  .free-text {
+    font-size: 12px;
+    color: var(--text-light);
+    font-family: 'Noto Sans', sans-serif;
+  }
+
+  .lang-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .lang-list::-webkit-scrollbar { width: 4px; }
+  .lang-list::-webkit-scrollbar-track { background: transparent; }
+  .lang-list::-webkit-scrollbar-thumb { background: #DDD8CC; border-radius: 4px; }
+
+  .lang-group-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-light);
+    font-family: 'Noto Sans', sans-serif;
+    padding: 8px 8px 4px;
+  }
+
+  .lang-card {
+    background: white;
+    border: 2px solid #EDE8DF;
+    border-radius: var(--radius-sm);
+    padding: 13px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.34,1.3,0.64,1);
+    position: relative;
+    overflow: hidden;
+  }
+  .lang-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--saffron);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .lang-card:active::after { opacity: 0.04; }
+
+  .lang-card.selected {
+    border-color: var(--saffron);
+    background: var(--saffron-pale);
+  }
+  .lang-card.selected .lang-name { color: var(--saffron); }
+
+  .lang-card.locked {
+    opacity: 0.7;
+  }
+
+  .lang-card.default-lang {
+    border-color: var(--green);
+    background: var(--green-pale);
+  }
+  .lang-card.default-lang .lang-name { color: var(--green); }
+
+  .lang-script {
+    width: 46px; height: 46px;
+    border-radius: 12px;
+    background: #F5F0E8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+    font-family: 'Noto Sans', sans-serif;
+    line-height: 1;
+    color: var(--text-dark);
+  }
+  .lang-card.selected .lang-script { background: rgba(255,107,26,0.12); }
+  .lang-card.default-lang .lang-script { background: rgba(19,136,8,0.12); }
+
+  .lang-info { flex: 1; min-width: 0; }
+  .lang-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 2px;
+  }
+  .lang-meta {
+    font-size: 11px;
+    color: var(--text-light);
+    font-family: 'Noto Sans', sans-serif;
+  }
+
+  .lang-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .price-tag {
+    background: #FFF0E6;
+    border: 1px solid rgba(255,107,26,0.25);
+    color: var(--saffron);
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'Noto Sans', sans-serif;
+    border-radius: 8px;
+    padding: 4px 8px;
+  }
+  .free-tag {
+    background: var(--green-pale);
+    border: 1px solid rgba(19,136,8,0.2);
+    color: var(--green);
+    font-size: 11px;
+    font-weight: 700;
+    font-family: 'Noto Sans', sans-serif;
+    border-radius: 8px;
+    padding: 4px 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .check-circle {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    border: 2px solid #DDD8CC;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .lang-card.selected .check-circle,
+  .lang-card.default-lang .check-circle {
+    background: var(--saffron);
+    border-color: var(--saffron);
+    color: white;
+  }
+  .lang-card.default-lang .check-circle {
+    background: var(--green);
+    border-color: var(--green);
+  }
+
+  .sticky-bottom {
+    background: white;
+    border-top: 1px solid #EDE8DF;
+    padding: 16px 20px 28px;
+  }
+
+  .selection-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .summary-left {
+    font-size: 13px;
+    color: var(--text-light);
+    font-family: 'Noto Sans', sans-serif;
+  }
+  .summary-left strong {
+    color: var(--text-dark);
+    font-family: 'Baloo 2', cursive;
+    font-size: 15px;
+  }
+  .summary-cost {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--saffron);
+  }
+  .summary-cost span {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-light);
+    font-family: 'Noto Sans', sans-serif;
+    display: block;
+    text-align: right;
+  }
+
+  /* ─── DOWNLOAD SCREEN ─── */
+  #downloading {
+    background: linear-gradient(160deg, #FF6B1A 0%, #E8500A 45%, #000080 100%);
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 0;
+    padding: 40px 32px;
+  }
+
+  .dl-icon { font-size: 72px; margin-bottom: 24px; animation: logoFloat 3s ease-in-out infinite; }
+  .dl-title { font-size: 28px; font-weight: 800; color: white; text-align: center; margin-bottom: 8px; }
+  .dl-sub { font-size: 14px; color: rgba(255,255,255,0.7); text-align: center; font-family: 'Noto Sans', sans-serif; margin-bottom: 48px; }
+
+  .dl-lang-item {
+    width: 100%;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    animation: dlItemIn 0.4s ease both;
+  }
+  @keyframes dlItemIn { from { opacity:0;transform:translateX(-20px) } to { opacity:1;transform:translateX(0) } }
+
+  .dl-lang-icon { font-size: 24px; }
+  .dl-lang-info { flex: 1; }
+  .dl-lang-name { font-size: 14px; font-weight: 700; color: white; margin-bottom: 4px; }
+  .dl-progress-bar {
+    height: 4px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .dl-progress-fill {
+    height: 100%;
+    background: var(--gold);
+    border-radius: 4px;
+    width: 0%;
+    transition: width 0.3s ease;
+  }
+  .dl-status { font-size: 12px; color: rgba(255,255,255,0.6); font-family: 'Noto Sans', sans-serif; }
+
+  /* ─── NAV DOTS ─── */
+  .nav-dots {
+    position: absolute;
+    bottom: 16px;
+    left: 50%; transform: translateX(-50%);
+    display: flex;
+    gap: 5px;
+    z-index: 10;
+  }
+  .nav-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.15);
+    transition: all 0.3s;
+  }
+  .nav-dot.active { background: var(--saffron); width: 20px; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="device-frame">
+
+  <!-- ═══ SCREEN 1: SPLASH ═══ -->
+  <div class="screen" id="splash" onclick="goTo('welcome')">
+    <svg class="rangoli-bg" viewBox="0 0 375 780" preserveAspectRatio="none">
+      <circle cx="187" cy="390" r="300" stroke-width="1"/>
+      <circle cx="187" cy="390" r="240" stroke-width="1"/>
+      <circle cx="187" cy="390" r="180" stroke-width="1"/>
+      <circle cx="187" cy="390" r="120" stroke-width="1"/>
+      <circle cx="187" cy="390" r="60" stroke-width="1"/>
+      <path d="M187 90 L287 340 L37 200 L337 200 L87 340 Z" stroke-width="1.5"/>
+      <path d="M187 690 L87 440 L337 580 L37 580 L287 440 Z" stroke-width="1.5"/>
+    </svg>
+
+    <div class="splash-logo">
+      <div class="logo-circle">📚</div>
+      <div class="splash-title">
+        Varnamala
+        <span>LEARN · WRITE · SPEAK</span>
+      </div>
+      <div class="splash-subtitle">13 Indian languages for your child</div>
+    </div>
+
+    <div class="splash-dots">
+      <div class="splash-dot"></div>
+      <div class="splash-dot"></div>
+      <div class="splash-dot"></div>
+    </div>
+    <div class="splash-tap">Tap anywhere to begin</div>
+  </div>
+
+  <!-- ═══ SCREEN 2: WELCOME ═══ -->
+  <div class="screen hidden" id="welcome">
+    <div class="welcome-header">
+      <svg class="welcome-wave" viewBox="0 0 180 180">
+        <circle cx="160" cy="20" r="120" fill="none" stroke="white" stroke-width="30" opacity="0.15"/>
+        <circle cx="160" cy="20" r="80"  fill="none" stroke="white" stroke-width="20" opacity="0.15"/>
+      </svg>
+      <div class="welcome-greeting">Welcome to</div>
+      <div class="welcome-title">
+        Learn to read &amp; write<br/>in <em>your mother tongue</em>
+      </div>
+    </div>
+
+    <div class="welcome-body">
+      <div class="section-label">What your child will do</div>
+      <div class="feature-cards">
+        <div class="feature-card">
+          <div class="feature-icon icon-orange">🔤</div>
+          <div class="feature-text">
+            <h4>Hear every letter</h4>
+            <p>Tap any letter and hear it spoken clearly in the right accent</p>
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon icon-green">✏️</div>
+          <div class="feature-text">
+            <h4>Trace &amp; write</h4>
+            <p>Follow guided stroke paths to learn the correct way to form each letter</p>
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon icon-blue">🌟</div>
+          <div class="feature-text">
+            <h4>Earn stars &amp; stickers</h4>
+            <p>Complete letters to unlock rewards and fill your sticker book</p>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-primary" onclick="goTo('langselect')">
+        Choose your language →
+      </button>
+      <button class="btn-secondary" onclick="goTo('langselect')">
+        I'll decide later
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN 3: LANGUAGE SELECT ═══ -->
+  <div class="screen hidden" id="langselect">
+    <div class="langselect-header">
+      <button class="back-btn" onclick="goTo('welcome')">←</button>
+      <div class="langselect-title">Pick your<br/>languages</div>
+      <div class="langselect-sub">English is always free. Unlock more for ₹199 each.</div>
+    </div>
+
+    <div class="lang-search">
+      <input type="text" placeholder="Search language…" oninput="filterLangs(this.value)" />
+    </div>
+
+    <div class="free-badge-row">
+      <span class="free-pill">Free</span>
+      <span class="free-text">English included with every account</span>
+    </div>
+
+    <div class="lang-list" id="langList"></div>
+
+    <div class="sticky-bottom">
+      <div class="selection-summary">
+        <div class="summary-left">
+          <strong id="selCount">1</strong> language selected
+        </div>
+        <div class="summary-cost" id="costDisplay">
+          ₹0
+          <span>English is free</span>
+        </div>
+      </div>
+      <button class="btn-primary" onclick="goTo('downloading')">
+        Start learning →
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN 4: DOWNLOADING ═══ -->
+  <div class="screen hidden" id="downloading">
+    <div class="dl-icon">⚡</div>
+    <div class="dl-title">Preparing your languages</div>
+    <div class="dl-sub">Generating audio for every letter.<br/>This takes just a moment!</div>
+    <div id="dlItems" style="width:100%"></div>
+  </div>
+
+  <!-- Nav dots -->
+  <div class="nav-dots">
+    <div class="nav-dot active" id="dot-0"></div>
+    <div class="nav-dot" id="dot-1"></div>
+    <div class="nav-dot" id="dot-2"></div>
+    <div class="nav-dot" id="dot-3"></div>
+  </div>
+
+</div>
+
+<script>
+const LANGUAGES = [
+  { id:'en', name:'English',   native:'Aa',   script:'Latin',      speakers:'1.5B', free:true,  emoji:'🇬🇧' },
+  { id:'hi', name:'Hindi',     native:'अ',    script:'Devanagari', speakers:'600M', free:false, emoji:'🇮🇳' },
+  { id:'bn', name:'Bengali',   native:'অ',    script:'Bengali',    speakers:'230M', free:false, emoji:'🅱' },
+  { id:'te', name:'Telugu',    native:'అ',    script:'Telugu',     speakers:'96M',  free:false, emoji:'🌺' },
+  { id:'mr', name:'Marathi',   native:'अ',    script:'Devanagari', speakers:'95M',  free:false, emoji:'🟠' },
+  { id:'ta', name:'Tamil',     native:'அ',    script:'Tamil',      speakers:'78M',  free:false, emoji:'🌸' },
+  { id:'ur', name:'Urdu',      native:'ا',    script:'Nastaliq',   speakers:'70M',  free:false, emoji:'☪' },
+  { id:'gu', name:'Gujarati',  native:'અ',    script:'Gujarati',   speakers:'60M',  free:false, emoji:'🏺' },
+  { id:'kn', name:'Kannada',   native:'ಅ',    script:'Kannada',    speakers:'44M',  free:false, emoji:'🌻' },
+  { id:'or', name:'Odia',      native:'ଅ',    script:'Odia',       speakers:'38M',  free:false, emoji:'🎋' },
+  { id:'ml', name:'Malayalam', native:'അ',    script:'Malayalam',  speakers:'38M',  free:false, emoji:'🌴' },
+  { id:'pa', name:'Punjabi',   native:'ਅ',    script:'Gurmukhi',   speakers:'33M',  free:false, emoji:'🌾' },
+  { id:'as', name:'Assamese',  native:'অ',    script:'Assamese',   speakers:'23M',  free:false, emoji:'🐘' },
+  { id:'ks', name:'Kashmiri',  native:'اَ',   script:'Sharada',    speakers:'7M',   free:false, emoji:'❄' },
+  { id:'sa', name:'Sanskrit',  native:'अ',    script:'Devanagari', speakers:'N/A',  free:false, emoji:'🕉' },
+  { id:'ko', name:'Konkani',   native:'अ',    script:'Devanagari', speakers:'2.5M', free:false, emoji:'🐚' },
+  { id:'ne', name:'Nepali',    native:'अ',    script:'Devanagari', speakers:'17M',  free:false, emoji:'🏔' },
+];
+
+let selected = new Set(['en']);
+let filteredLangs = [...LANGUAGES];
+
+function renderLangs(list) {
+  const container = document.getElementById('langList');
+  container.innerHTML = '';
+
+  // Free section
+  const freeItems = list.filter(l => l.free);
+  const paidItems = list.filter(l => !l.free);
+
+  if (freeItems.length) {
+    const lbl = document.createElement('div');
+    lbl.className = 'lang-group-label';
+    lbl.textContent = 'Always Free';
+    container.appendChild(lbl);
+    freeItems.forEach(l => container.appendChild(makeLangCard(l)));
+  }
+
+  if (paidItems.length) {
+    const lbl = document.createElement('div');
+    lbl.className = 'lang-group-label';
+    lbl.textContent = '₹199 per language — unlock anytime';
+    container.appendChild(lbl);
+    paidItems.forEach(l => container.appendChild(makeLangCard(l)));
+  }
+}
+
+function makeLangCard(lang) {
+  const card = document.createElement('div');
+  const isDefault = lang.free;
+  const isSel = selected.has(lang.id);
+  card.className = 'lang-card' + (isDefault ? ' default-lang' : (isSel ? ' selected' : ''));
+  card.dataset.id = lang.id;
+
+  card.innerHTML = `
+    <div class="lang-script">${lang.native}</div>
+    <div class="lang-info">
+      <div class="lang-name">${lang.name}</div>
+      <div class="lang-meta">${lang.script} · ${lang.speakers} speakers</div>
+    </div>
+    <div class="lang-right">
+      ${isDefault
+        ? '<span class="free-tag">Free</span>'
+        : isSel
+          ? '<span class="price-tag">₹199</span>'
+          : '<span class="price-tag">₹199</span>'}
+      <div class="check-circle">${(isDefault || isSel) ? '✓' : ''}</div>
+    </div>
+  `;
+
+  if (!isDefault) {
+    card.addEventListener('click', () => toggleLang(lang.id));
+  }
+  return card;
+}
+
+function toggleLang(id) {
+  if (selected.has(id)) {
+    selected.delete(id);
+  } else {
+    selected.add(id);
+  }
+  updateSummary();
+  renderLangs(filteredLangs);
+}
+
+function updateSummary() {
+  const paid = [...selected].filter(id => id !== 'en').length;
+  const total = paid * 199;
+  document.getElementById('selCount').textContent = selected.size;
+  const costEl = document.getElementById('costDisplay');
+  if (paid === 0) {
+    costEl.innerHTML = '₹0<span>English is free</span>';
+  } else {
+    costEl.innerHTML = `₹${total}<span>${paid} language${paid>1?'s':''} × ₹199</span>`;
+  }
+}
+
+function filterLangs(q) {
+  const query = q.trim().toLowerCase();
+  filteredLangs = LANGUAGES.filter(l =>
+    l.name.toLowerCase().includes(query) ||
+    l.script.toLowerCase().includes(query) ||
+    l.native.includes(q)
+  );
+  renderLangs(filteredLangs);
+}
+
+// ── Screen navigation ──
+const screens = ['splash', 'welcome', 'langselect', 'downloading'];
+let current = 0;
+
+function goTo(id) {
+  const prev = document.getElementById(screens[current]);
+  prev.classList.add('exit');
+  setTimeout(() => {
+    prev.classList.add('hidden');
+    prev.classList.remove('exit');
+  }, 400);
+
+  current = screens.indexOf(id);
+  const next = document.getElementById(id);
+  next.classList.remove('hidden');
+
+  // Update dots
+  screens.forEach((_, i) => {
+    document.getElementById('dot-'+i).classList.toggle('active', i === current);
+  });
+
+  if (id === 'downloading') startDownload();
+}
+
+// ── Download simulation ──
+function startDownload() {
+  const container = document.getElementById('dlItems');
+  container.innerHTML = '';
+
+  const toLang = [...selected].map(id => LANGUAGES.find(l => l.id === id));
+
+  toLang.forEach((lang, i) => {
+    const item = document.createElement('div');
+    item.className = 'dl-lang-item';
+    item.style.animationDelay = (i * 0.12) + 's';
+    item.innerHTML = `
+      <div class="dl-lang-icon">${lang.emoji}</div>
+      <div class="dl-lang-info">
+        <div class="dl-lang-name">${lang.name}</div>
+        <div class="dl-progress-bar">
+          <div class="dl-progress-fill" id="fill-${lang.id}"></div>
+        </div>
+      </div>
+      <div class="dl-status" id="status-${lang.id}">Preparing…</div>
+    `;
+    container.appendChild(item);
+  });
+
+  // Animate each progress bar sequentially
+  toLang.forEach((lang, i) => {
+    const delay = i * 900;
+    setTimeout(() => {
+      const fill = document.getElementById('fill-'+lang.id);
+      const status = document.getElementById('status-'+lang.id);
+      if (!fill) return;
+      status.textContent = 'Generating audio…';
+      let prog = 0;
+      const iv = setInterval(() => {
+        prog += Math.random() * 18 + 8;
+        if (prog >= 100) {
+          prog = 100;
+          clearInterval(iv);
+          fill.style.width = '100%';
+          status.textContent = '✓ Ready';
+          status.style.color = '#FFD700';
+
+          // If last, show final message
+          if (i === toLang.length - 1) {
+            setTimeout(() => {
+              document.querySelector('#downloading .dl-title').textContent = 'All set! 🎉';
+              document.querySelector('#downloading .dl-sub').textContent = 'Your child can start learning right now.';
+            }, 500);
+          }
+        } else {
+          fill.style.width = prog + '%';
+        }
+      }, 120);
+    }, delay);
+  });
+}
+
+// ── Init ──
+renderLangs(LANGUAGES);
+updateSummary();
+</script>
+</body>
+</html>
